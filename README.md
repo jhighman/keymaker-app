@@ -1,77 +1,81 @@
-# KeyMaker App
+# KeyMaker Specification
 
-A React-based application for generating and analyzing keys for background check configurations.
+## Overview
+
+KeyMaker is a specification for encoding background check requirements in a compact, human-readable format. It provides a standardized way to specify language preferences, consent requirements, verification steps, and timeline requirements for background checks.
+
+## Documentation Structure
+
+The specification is organized into the following documents:
+
+- [Key Structure](docs/key-structure.md) - Detailed breakdown of the key format and its components
+- [Language Codes](docs/language-codes.md) - Supported languages and their codes
+- [Consent Options](docs/consent-options.md) - Available consent requirements
+- [Verification Steps](docs/verification-steps.md) - Background check verification steps
+- [Timeline Specifications](docs/timeline-specifications.md) - Timeline requirements for history checks
+- [Validation Rules](docs/validation-rules.md) - Rules for validating keys
+- [Usage Examples](docs/usage-examples.md) - Practical examples and use cases
+- [Technical Implementation](docs/technical-implementation.md) - Implementation guidelines and code examples
+
+## Quick Reference
+
+### Key Format
+```
+[Language Code (2)][Initial Bit (1)][Consents (3)][Steps (4)][Residence Timeline (3)][Employment Timeline (3)]
+```
+
+### Example Key
+```
+en1000000000000
+```
+Breaking down the example:
+- Language: English (en)
+- Initial Bit: 1
+- Consents: None (000)
+- Steps: None (0000)
+- Residence Timeline: 000 (ignored)
+- Employment Timeline: 000 (ignored)
 
 ## Features
 
-- Generate keys with customizable settings:
-  - Language selection (English, Spanish, French)
-  - Consent options (Driver's License, Drug Test, Biometric Data)
-  - Required steps (Education, Professional License, Residence History, Employment History)
-  - Timeline configurations for history requirements
-
-- Analyze existing keys:
-  - Detailed breakdown of key contents
-  - Validation of key format and structure
-  - Clear display of all settings and requirements
+- **Compact Format**: 16-character string
+- **Human Readable**: Easy to understand and share
+- **Extensible**: Version bit for future updates
+- **Language Support**: Multiple language options
+- **Flexible Requirements**: Configurable consents and steps
+- **Timeline Control**: Adjustable history periods
 
 ## Getting Started
 
-### Prerequisites
+1. Review the [Key Structure](docs/key-structure.md) document
+2. Check the [Usage Examples](docs/usage-examples.md) for common scenarios
+3. Implement validation using the [Technical Implementation](docs/technical-implementation.md) guide
+4. Test your implementation against the [Validation Rules](docs/validation-rules.md)
 
-- Node.js (v14 or higher)
-- npm (v6 or higher)
+## Contributing
 
-### Installation
+Contributions to the KeyMaker specification are welcome. Please:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/keymaker-app.git
-   cd keymaker-app
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open your browser and navigate to:
-   ```
-   http://localhost:4000
-   ```
-
-### Building for Production
-
-To create a production build:
-
-```bash
-npm run build
-```
-
-The build output will be in the `dist` directory.
-
-## Key Structure
-
-The generated keys follow this structure:
-1. Language code (2 chars)
-2. Initial bit (1)
-3. Consents (3 bits)
-4. Steps (4 bits)
-5. Residence timeline (3 bits)
-6. Employment timeline (3 bits)
-
-## Development
-
-- Built with React and Vite
-- Styled with styled-components
-- Modern UI with responsive design
-- Hot Module Replacement enabled
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This specification is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For questions and support:
+1. Check the documentation
+2. Open an issue
+3. Contact the maintainers
+
+## Version History
+
+- v1.0.0 (2024-03-21)
+  - Initial specification release
+  - Basic key structure
+  - Core validation rules
+  - Implementation examples 

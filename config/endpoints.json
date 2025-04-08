@@ -1,0 +1,40 @@
+{
+  "endpoints": [
+    {
+      "id": "prod-standard",
+      "name": "Production Standard",
+      "url": "https://collect.trua.me",
+      "description": "Standard production collection endpoint"
+    },
+    {
+      "id": "prod-enterprise",
+      "name": "Production Enterprise",
+      "url": "https://enterprise.collect.trua.me",
+      "description": "Enterprise production collection endpoint"
+    },
+    {
+      "id": "staging-standard",
+      "name": "Staging Standard",
+      "url": "https://staging.collect.trua.me",
+      "description": "Staging environment for testing"
+    },
+    {
+      "id": "staging-enterprise",
+      "name": "Staging Enterprise",
+      "url": "https://staging-enterprise.collect.trua.me",
+      "description": "Enterprise staging environment"
+    },
+    {
+      "id": "dev",
+      "name": "Development",
+      "url": "https://dev.collect.trua.me",
+      "description": "Development environment for testing"
+    },
+    {
+      "id": "local",
+      "name": "Local Development",
+      "url": "http://localhost:3000",
+      "description": "Local development environment"
+    }
+  ]
+} 

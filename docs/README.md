@@ -1,39 +1,45 @@
-# KeyMaker App Documentation
+# KeyMaker Specification Documentation
 
-Welcome to the KeyMaker App documentation. This documentation provides comprehensive information about the application's architecture, components, and usage.
-
-## Table of Contents
-
-1. [Getting Started](./getting-started.md)
-2. [Architecture](./architecture.md)
-3. [Components](./components.md)
-4. [Styling](./styling.md)
-5. [Development Guide](./development.md)
+This documentation describes the KeyMaker specification, a standardized format for encoding background check configuration settings.
 
 ## Overview
 
-KeyMaker is a React-based application that provides a key management interface. The application is built using modern web technologies and follows best practices for React development.
+The KeyMaker specification defines a compact, binary-based encoding system for representing background check configuration settings. This specification enables the creation of human-readable keys that encode various consent options, required verification steps, and timeline requirements.
 
-## Quick Start
+## Table of Contents
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+1. [Key Structure](./key-structure.md)
+2. [Language Codes](./language-codes.md)
+3. [Consent Options](./consent-options.md)
+4. [Verification Steps](./verification-steps.md)
+5. [Timeline Requirements](./timeline-requirements.md)
+6. [Implementation Guide](./implementation-guide.md)
+7. [Examples](./examples.md)
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Quick Reference
 
-3. Build for production:
-   ```bash
-   npm run build
-   ```
+A KeyMaker key follows this structure:
+```
+[Language Code (2 chars)][Initial Bit (1)][Consents (3 bits)][Steps (4 bits)][Residence Timeline (3 bits)][Employment Timeline (3 bits)]
+```
 
-## Tech Stack
+Total length: 16 characters
+- Language code: 2 characters
+- Binary data: 14 characters (1 + 3 + 4 + 3 + 3)
 
-- React 18
-- Vite
-- Styled Components
-- React Icons 
+## Usage
+
+The KeyMaker specification is designed to be:
+- Human-readable
+- Compact
+- Self-contained
+- Easy to validate
+- Easy to parse
+
+## Version
+
+Current version: 1.0.0
+
+## License
+
+This specification is open source and available under the MIT License. 
