@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiCopy, FiCheck, FiLink, FiPlus, FiUser, FiMail } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLink, FiPlus, FiUser, FiMail, FiLoader } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
+import { customerService } from '../services/api';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -196,6 +197,31 @@ const DeleteButton = styled(Button)`
   background: #dc3545;
 `;
 
+const LoadingSpinner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${props => props.theme.spacing.lg};
+  color: ${props => props.theme.colors.textLight};
+  
+  svg {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: ${props => props.theme.colors.danger || '#dc3545'};
+  background: ${props => props.theme.colors.dangerLight || '#ffebee'};
+  padding: ${props => props.theme.spacing.md};
+  border-radius: ${props => props.theme.borderRadius.md};
+  margin-bottom: ${props => props.theme.spacing.md};
+`;
+
 const AddIndividualModal = styled.div`
   position: fixed;
   top: 0;
@@ -221,53 +247,140 @@ const InviteAndTrack = () => {
   const [showAddIndividual, setShowAddIndividual] = useState(false);
   const [individualId, setIndividualId] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState(endpoints.endpoints[0].id);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleAddCustomer = () => {
+  // Fetch customers from API on component mount
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedCustomers = await customerService.getCustomers();
+        setCustomers(fetchedCustomers);
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+        setError('Failed to load customers. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCustomers();
+  }, []);
+
+  const handleAddCustomer = async () => {
     if (!customerName.trim()) return;
 
     const newCustomer = {
-      id: Date.now(),
       name: customerName,
       link: `${endpoints.endpoints[0].url}?key=en-EPA-DTB-R5-E3-E-P-W`,
       individuals: [],
       endpoint: endpoints.endpoints[0].name
     };
 
-    setCustomers(prev => [...prev, newCustomer]);
-    setCustomerName('');
+    try {
+      setLoading(true);
+      setError(null);
+      const savedCustomer = await customerService.createCustomer(newCustomer);
+      setCustomers(prev => [...prev, savedCustomer]);
+      setCustomerName('');
+    } catch (err) {
+      console.error('Error adding customer:', err);
+      setError('Failed to add customer. Please try again.');
+      
+      // Fallback to local state if API fails
+      const fallbackCustomer = {
+        id: Date.now(),
+        ...newCustomer
+      };
+      setCustomers(prev => [...prev, fallbackCustomer]);
+      setCustomerName('');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddIndividual = () => {
+  const handleAddIndividual = async () => {
     if (!individualId.trim() || !selectedCustomer) return;
 
-    setCustomers(prev => prev.map(customer => {
-      if (customer.id === selectedCustomer.id) {
-        return {
-          ...customer,
-          individuals: [...customer.individuals, {
-            id: individualId,
-            timestamp: Date.now(),
-            status: 'pending' // pending, completed, expired
-          }]
-        };
-      }
-      return customer;
-    }));
+    const individualData = {
+      id: individualId,
+      timestamp: Date.now(),
+      status: 'pending' // pending, completed, expired
+    };
 
-    setIndividualId('');
-    setShowAddIndividual(false);
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Add individual via API
+      const updatedCustomer = await customerService.addIndividual(selectedCustomer.id, individualData);
+      
+      // Update local state
+      setCustomers(prev => prev.map(customer =>
+        customer.id === selectedCustomer.id ? updatedCustomer : customer
+      ));
+      
+      setIndividualId('');
+      setShowAddIndividual(false);
+    } catch (err) {
+      console.error('Error adding individual:', err);
+      setError('Failed to add individual. Please try again.');
+      
+      // Fallback to local state if API fails
+      setCustomers(prev => prev.map(customer => {
+        if (customer.id === selectedCustomer.id) {
+          return {
+            ...customer,
+            individuals: [...customer.individuals, individualData]
+          };
+        }
+        return customer;
+      }));
+      
+      setIndividualId('');
+      setShowAddIndividual(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteIndividual = (customerId, individualId) => {
-    setCustomers(prev => prev.map(customer => {
-      if (customer.id === customerId) {
-        return {
-          ...customer,
-          individuals: customer.individuals.filter(ind => ind.id !== individualId)
-        };
-      }
-      return customer;
-    }));
+  const handleDeleteIndividual = async (customerId, individualId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Delete individual via API
+      await customerService.removeIndividual(customerId, individualId);
+      
+      // Update local state
+      setCustomers(prev => prev.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: customer.individuals.filter(ind => ind.id !== individualId)
+          };
+        }
+        return customer;
+      }));
+    } catch (err) {
+      console.error('Error deleting individual:', err);
+      setError('Failed to delete individual. Please try again.');
+      
+      // Still update UI even if API fails
+      setCustomers(prev => prev.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: customer.individuals.filter(ind => ind.id !== individualId)
+          };
+        }
+        return customer;
+      }));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getIndividualLink = (customerLink, individualId) => {
@@ -293,6 +406,8 @@ const InviteAndTrack = () => {
         <Description>Manage collection invites and track completion status</Description>
       </Header>
 
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      
       <Grid>
         <Card>
           <CardTitle>
@@ -304,24 +419,30 @@ const InviteAndTrack = () => {
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
           />
-          <Button onClick={handleAddCustomer}>
-            <FiPlus /> Add Customer
+          <Button onClick={handleAddCustomer} disabled={loading}>
+            {loading ? <FiLoader /> : <FiPlus />} Add Customer
           </Button>
 
-          <CustomerList>
-            {customers.map(customer => (
-              <CustomerItem
-                key={customer.id}
-                isSelected={selectedCustomer?.id === customer.id}
-                onClick={() => setSelectedCustomer(customer)}
-              >
-                <CustomerName>{customer.name}</CustomerName>
-                <CustomerStats>
-                  {customer.individuals.length} individuals
-                </CustomerStats>
-              </CustomerItem>
-            ))}
-          </CustomerList>
+          {loading && !customers.length ? (
+            <LoadingSpinner>
+              <FiLoader size={24} /> Loading customers...
+            </LoadingSpinner>
+          ) : (
+            <CustomerList>
+              {customers.map(customer => (
+                <CustomerItem
+                  key={customer.id}
+                  isSelected={selectedCustomer?.id === customer.id}
+                  onClick={() => setSelectedCustomer(customer)}
+                >
+                  <CustomerName>{customer.name}</CustomerName>
+                  <CustomerStats>
+                    {customer.individuals.length} individuals
+                  </CustomerStats>
+                </CustomerItem>
+              ))}
+            </CustomerList>
+          )}
         </Card>
 
         {selectedCustomer ? (

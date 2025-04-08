@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiCopy, FiCheck, FiLink } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
+import { keyService, customerService } from '../services/api';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -388,6 +389,31 @@ const ConfigurationGrid = styled(Grid)`
   margin-bottom: ${props => props.theme.spacing.xl};
 `;
 
+const LoadingSpinner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${props => props.theme.spacing.lg};
+  color: ${props => props.theme.colors.textLight};
+  
+  svg {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: ${props => props.theme.colors.danger || '#dc3545'};
+  background: ${props => props.theme.colors.dangerLight || '#ffebee'};
+  padding: ${props => props.theme.spacing.md};
+  border-radius: ${props => props.theme.borderRadius.md};
+  margin-bottom: ${props => props.theme.spacing.md};
+`;
+
 const OutputGrid = styled(Grid)`
   grid-template-columns: 1fr;
   max-width: 800px;
@@ -418,6 +444,33 @@ const KeyMaker = () => {
   const [individualId, setIndividualId] = useState('');
   const [customerLinks, setCustomerLinks] = useState([]);
   const [generatedKey, setGeneratedKey] = useState('');
+  
+  // New state for API integration
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [savedKeys, setSavedKeys] = useState([]);
+
+  // Fetch saved keys on component mount
+  useEffect(() => {
+    const fetchSavedKeys = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const keys = await keyService.getKeys();
+        setSavedKeys(keys);
+        
+        const customers = await customerService.getCustomers();
+        setCustomerLinks(customers);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load saved data. Using local state only.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSavedKeys();
+  }, []);
 
   const generatePersonalInfoFacet = useCallback(() => {
     try {
@@ -551,76 +604,199 @@ const KeyMaker = () => {
     });
   };
 
-  const handleSaveCustomerLink = () => {
+  // Updated to use API
+  const handleSaveCustomerLink = async () => {
     if (!customerName.trim()) return;
     
+    const key = generateKey();
+    const link = generateCollectionLink();
+    
     const newCustomerLink = {
-      id: Date.now(),
       name: customerName,
-      key: generateKey(),
-      link: generateCollectionLink(),
+      link: link,
       endpoint: getSelectedEndpoint().name,
-      individuals: [] // Add individuals array
+      individuals: []
     };
     
-    setCustomerLinks(prev => [...prev, newCustomerLink]);
-    setCustomerName('');
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Save the key
+      const keyData = {
+        value: key,
+        language,
+        personalInfo,
+        consents,
+        residenceHistory: {
+          required: residenceHistory !== 'N',
+          years: residenceHistory === 'N' ? 0 : parseInt(residenceHistory.slice(1))
+        },
+        employmentHistory: {
+          required: employmentHistory !== 'N',
+          mode: employmentHistory.startsWith('EN') ? 'employers' : 'years',
+          value: employmentHistory === 'N' ? 0 : parseInt(employmentHistory.slice(employmentHistory.startsWith('EN') ? 2 : 1))
+        },
+        education,
+        professionalLicense,
+        signature: signature === 'W' ? 'Wet' : 'Electronic'
+      };
+      
+      await keyService.createKey(keyData);
+      
+      // Save the customer
+      const savedCustomer = await customerService.createCustomer(newCustomerLink);
+      
+      // Update local state
+      setCustomerLinks(prev => [...prev, savedCustomer]);
+      setSavedKeys(prev => [...prev, keyData]);
+      setCustomerName('');
+    } catch (err) {
+      console.error('Error saving customer link:', err);
+      setError('Failed to save customer link. Please try again.');
+      
+      // Fallback to local state if API fails
+      const fallbackCustomer = {
+        id: Date.now(),
+        name: customerName,
+        key,
+        link,
+        endpoint: getSelectedEndpoint().name,
+        individuals: []
+      };
+      
+      setCustomerLinks(prev => [...prev, fallbackCustomer]);
+      setCustomerName('');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddIndividual = (customerId) => {
+  // Updated to use API
+  const handleAddIndividual = async (customerId) => {
     if (!individualId.trim()) return;
 
-    setCustomerLinks(prev => prev.map(customer => {
-      if (customer.id === customerId) {
-        return {
-          ...customer,
-          individuals: [...customer.individuals, {
-            id: individualId,
-            timestamp: Date.now()
-          }]
-        };
-      }
-      return customer;
-    }));
-
-    setIndividualId('');
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const individualData = {
+        id: individualId,
+        status: 'pending',
+        timestamp: Date.now()
+      };
+      
+      // Add individual via API
+      const updatedCustomer = await customerService.addIndividual(customerId, individualData);
+      
+      // Update local state
+      setCustomerLinks(prev => prev.map(customer =>
+        customer.id === customerId ? updatedCustomer : customer
+      ));
+      
+      setIndividualId('');
+    } catch (err) {
+      console.error('Error adding individual:', err);
+      setError('Failed to add individual. Please try again.');
+      
+      // Fallback to local state if API fails
+      setCustomerLinks(prev => prev.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: [...customer.individuals, {
+              id: individualId,
+              status: 'pending',
+              timestamp: Date.now()
+            }]
+          };
+        }
+        return customer;
+      }));
+      
+      setIndividualId('');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteCustomerLink = (id) => {
-    setCustomerLinks(prev => prev.filter(link => link.id !== id));
+  // Updated to use API
+  const handleDeleteCustomerLink = async (id) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Delete customer via API
+      await customerService.deleteCustomer(id);
+      
+      // Update local state
+      setCustomerLinks(prev => prev.filter(link => link.id !== id));
+    } catch (err) {
+      console.error('Error deleting customer:', err);
+      setError('Failed to delete customer. Please try again.');
+      
+      // Fallback to local state if API fails
+      setCustomerLinks(prev => prev.filter(link => link.id !== id));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteIndividual = (customerId, individualId) => {
-    setCustomerLinks(prev => prev.map(customer => {
-      if (customer.id === customerId) {
-        return {
-          ...customer,
-          individuals: customer.individuals.filter(ind => ind.id !== individualId)
-        };
-      }
-      return customer;
-    }));
+  // Updated to use API
+  const handleDeleteIndividual = async (customerId, individualId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Remove individual via API
+      const updatedCustomer = await customerService.removeIndividual(customerId, individualId);
+      
+      // Update local state
+      setCustomerLinks(prev => prev.map(customer =>
+        customer.id === customerId ? updatedCustomer : customer
+      ));
+    } catch (err) {
+      console.error('Error deleting individual:', err);
+      setError('Failed to delete individual. Please try again.');
+      
+      // Fallback to local state if API fails
+      setCustomerLinks(prev => prev.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: customer.individuals.filter(ind => ind.id !== individualId)
+          };
+        }
+        return customer;
+      }));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getIndividualLink = (customerLink, individualId) => {
     return `${customerLink}&puid=${individualId}`;
   };
 
-  const handleCopyIndividualLink = (customerLink, individualId) => {
+  const handleCopyIndividualLink = async (customerLink, individualId) => {
     const link = getIndividualLink(customerLink, individualId);
-    navigator.clipboard.writeText(link)
-      .then(() => {
-        // Could add temporary "Copied!" feedback if desired
-      })
-      .catch(err => console.error('Failed to copy individual link:', err));
+    try {
+      await navigator.clipboard.writeText(link);
+      console.log('Individual link copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy individual link:', error);
+    }
   };
 
   return (
     <Container>
       <Header>
-        <Title>Trua Collect Key Maker</Title>
-        <Description>Generate verification requirement keys and collection links for Trua Collect</Description>
+        <Title>KeyMaker</Title>
+        <Description>Generate and manage background check requirement keys</Description>
       </Header>
+
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {loading && <LoadingSpinner><FiLoader size={24} /></LoadingSpinner>}
 
       <ConfigurationGrid>
         <Card>
