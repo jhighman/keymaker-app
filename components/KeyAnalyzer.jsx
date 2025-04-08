@@ -63,6 +63,10 @@ const ResultCard = styled.div`
 
 const ResultSection = styled.div`
   margin-bottom: ${props => props.theme.spacing.lg};
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const ResultTitle = styled.h3`
@@ -87,36 +91,36 @@ const languages = {
   fr: 'French'
 };
 
-const timelineLabels = {
-  '000': '1 Entry (0 years)',
-  '001': '3 Years',
-  '010': '5 Years',
-  '011': '7 Years',
-  '100': '10 Years'
-};
-
 const KeyAnalyzer = () => {
   const [key, setKey] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
 
   const analyzeKey = (inputKey) => {
-    // Reset error state
     setError(null);
 
-    // Basic validation
     if (!inputKey) {
       setError('Please enter a key to analyze');
       return null;
     }
 
-    if (inputKey.length < 2) {
-      setError('Invalid key format: Key must be at least 2 characters long');
+    const facets = inputKey.split('-');
+
+    if (facets.length !== 8) {
+      setError(`Invalid key format: Expected 8 facets, got ${facets.length}`);
       return null;
     }
 
-    const language = inputKey[0] + inputKey[1];
-    const bits = inputKey.slice(2);
+    const [
+      language,
+      personalInfo,
+      consents,
+      residenceHistory,
+      employmentHistory,
+      education,
+      professionalLicense,
+      signature
+    ] = facets;
 
     // Validate language
     if (!languages[language]) {
@@ -124,60 +128,78 @@ const KeyAnalyzer = () => {
       return null;
     }
 
-    // Validate bits length (should be 14: 1 + 3 + 4 + 3 + 3)
-    if (bits.length !== 14) {
-      setError(`Invalid key length: Expected 14 bits after language code, got ${bits.length}`);
+    // Validate personal info
+    if (!/^E|EP|EPA$/.test(personalInfo)) {
+      setError(`Invalid personal info format: ${personalInfo}`);
       return null;
     }
 
-    // Validate bits content
-    if (!/^[01]+$/.test(bits)) {
-      setError('Invalid key format: Key must contain only 0s and 1s after the language code');
+    // Validate consents
+    if (consents !== 'N' && !/^[DTB]+$/.test(consents)) {
+      setError(`Invalid consents format: ${consents}`);
       return null;
     }
 
-    // Parse the bits according to the structure
-    const consents = {
-      driverLicense: bits[1] === '1',
-      drugTest: bits[2] === '1',
-      biometric: bits[3] === '1'
-    };
-
-    const steps = {
-      education: bits[4] === '1',
-      professionalLicense: bits[5] === '1',
-      residence: bits[6] === '1',
-      employment: bits[9] === '1'
-    };
-
-    const timelines = {
-      residence: bits.slice(7, 10),
-      employment: bits.slice(10, 13)
-    };
-
-    // Validate timeline codes
-    if (steps.residence && !timelineLabels[timelines.residence]) {
-      setError(`Invalid residence timeline code: ${timelines.residence}`);
+    // Validate residence history
+    if (residenceHistory !== 'N' && !/^R[135]$/.test(residenceHistory)) {
+      setError(`Invalid residence history format: ${residenceHistory}`);
       return null;
     }
 
-    if (steps.employment && !timelineLabels[timelines.employment]) {
-      setError(`Invalid employment timeline code: ${timelines.employment}`);
+    // Validate employment history
+    if (employmentHistory !== 'N' && !/^(E[135]|EN[123])$/.test(employmentHistory)) {
+      setError(`Invalid employment history format: ${employmentHistory}`);
+      return null;
+    }
+
+    // Validate education
+    if (!/^[EN]$/.test(education)) {
+      setError(`Invalid education format: ${education}`);
+      return null;
+    }
+
+    // Validate professional license
+    if (!/^[PN]$/.test(professionalLicense)) {
+      setError(`Invalid professional license format: ${professionalLicense}`);
+      return null;
+    }
+
+    // Validate signature
+    if (!/^[WE]$/.test(signature)) {
+      setError(`Invalid signature format: ${signature}`);
       return null;
     }
 
     return {
       language,
-      consents,
-      steps,
-      timelines
+      personalInfo: {
+        email: personalInfo.includes('E'),
+        phone: personalInfo.includes('P'),
+        address: personalInfo.includes('A')
+      },
+      consents: {
+        drugTest: consents.includes('D'),
+        taxForms: consents.includes('T'),
+        biometric: consents.includes('B')
+      },
+      residenceHistory: {
+        required: residenceHistory !== 'N',
+        years: residenceHistory === 'N' ? 0 : parseInt(residenceHistory.slice(1))
+      },
+      employmentHistory: {
+        required: employmentHistory !== 'N',
+        mode: employmentHistory.startsWith('EN') ? 'employers' : 'years',
+        value: employmentHistory === 'N' ? 0 : parseInt(employmentHistory.slice(employmentHistory.startsWith('EN') ? 2 : 1))
+      },
+      education: education === 'E',
+      professionalLicense: professionalLicense === 'P',
+      signature: signature === 'W' ? 'Wet' : 'Electronic'
     };
   };
 
   const handleKeyChange = (e) => {
     const inputKey = e.target.value.trim();
     setKey(inputKey);
-    // Clear previous analysis when input changes
     setAnalysis(null);
     setError(null);
   };
@@ -192,7 +214,7 @@ const KeyAnalyzer = () => {
       <InputGroup>
         <Input
           type="text"
-          placeholder="Enter a key to analyze (e.g., en1000000000000)"
+          placeholder="Enter a key to analyze (e.g., en-EPA-DTB-R5-E3-E-P-W)"
           value={key}
           onChange={handleKeyChange}
           onKeyPress={(e) => {
@@ -226,50 +248,92 @@ const KeyAnalyzer = () => {
           </ResultSection>
 
           <ResultSection>
-            <ResultTitle>Consents</ResultTitle>
+            <ResultTitle>Personal Information</ResultTitle>
             <ResultItem>
-              <span>Driver's License:</span>
-              <span>{analysis.consents.driverLicense ? 'Yes' : 'No'}</span>
+              <span>Email:</span>
+              <span>{analysis.personalInfo.email ? 'Required' : 'Not Required'}</span>
             </ResultItem>
             <ResultItem>
+              <span>Phone Number:</span>
+              <span>{analysis.personalInfo.phone ? 'Required' : 'Not Required'}</span>
+            </ResultItem>
+            <ResultItem>
+              <span>Address:</span>
+              <span>{analysis.personalInfo.address ? 'Required' : 'Not Required'}</span>
+            </ResultItem>
+          </ResultSection>
+
+          <ResultSection>
+            <ResultTitle>Required Consents</ResultTitle>
+            <ResultItem>
               <span>Drug Test:</span>
-              <span>{analysis.consents.drugTest ? 'Yes' : 'No'}</span>
+              <span>{analysis.consents.drugTest ? 'Required' : 'Not Required'}</span>
+            </ResultItem>
+            <ResultItem>
+              <span>Tax Forms:</span>
+              <span>{analysis.consents.taxForms ? 'Required' : 'Not Required'}</span>
             </ResultItem>
             <ResultItem>
               <span>Biometric Data:</span>
-              <span>{analysis.consents.biometric ? 'Yes' : 'No'}</span>
+              <span>{analysis.consents.biometric ? 'Required' : 'Not Required'}</span>
             </ResultItem>
           </ResultSection>
 
           <ResultSection>
-            <ResultTitle>Steps</ResultTitle>
+            <ResultTitle>Residence History</ResultTitle>
             <ResultItem>
-              <span>Education:</span>
-              <span>{analysis.steps.education ? 'Required' : 'Not Required'}</span>
+              <span>Required:</span>
+              <span>{analysis.residenceHistory.required ? 'Yes' : 'No'}</span>
+            </ResultItem>
+            {analysis.residenceHistory.required && (
+              <ResultItem>
+                <span>Time Period:</span>
+                <span>{analysis.residenceHistory.years} Year{analysis.residenceHistory.years !== 1 ? 's' : ''}</span>
+              </ResultItem>
+            )}
+          </ResultSection>
+
+          <ResultSection>
+            <ResultTitle>Employment History</ResultTitle>
+            <ResultItem>
+              <span>Required:</span>
+              <span>{analysis.employmentHistory.required ? 'Yes' : 'No'}</span>
+            </ResultItem>
+            {analysis.employmentHistory.required && (
+              <>
+                <ResultItem>
+                  <span>Mode:</span>
+                  <span>{analysis.employmentHistory.mode === 'years' ? 'Years' : 'Employers'}</span>
+                </ResultItem>
+                <ResultItem>
+                  <span>Requirement:</span>
+                  <span>
+                    {analysis.employmentHistory.mode === 'years' 
+                      ? `${analysis.employmentHistory.value} Year${analysis.employmentHistory.value !== 1 ? 's' : ''}`
+                      : `${analysis.employmentHistory.value} Employer${analysis.employmentHistory.value !== 1 ? 's' : ''}`}
+                  </span>
+                </ResultItem>
+              </>
+            )}
+          </ResultSection>
+
+          <ResultSection>
+            <ResultTitle>Additional Requirements</ResultTitle>
+            <ResultItem>
+              <span>Education Verification:</span>
+              <span>{analysis.education ? 'Required' : 'Not Required'}</span>
             </ResultItem>
             <ResultItem>
               <span>Professional License:</span>
-              <span>{analysis.steps.professionalLicense ? 'Required' : 'Not Required'}</span>
-            </ResultItem>
-            <ResultItem>
-              <span>Residence History:</span>
-              <span>{analysis.steps.residence ? 'Required' : 'Not Required'}</span>
-            </ResultItem>
-            <ResultItem>
-              <span>Employment History:</span>
-              <span>{analysis.steps.employment ? 'Required' : 'Not Required'}</span>
+              <span>{analysis.professionalLicense ? 'Required' : 'Not Required'}</span>
             </ResultItem>
           </ResultSection>
 
           <ResultSection>
-            <ResultTitle>Timelines</ResultTitle>
+            <ResultTitle>Signature Type</ResultTitle>
             <ResultItem>
-              <span>Residence Timeline:</span>
-              <span>{analysis.steps.residence ? timelineLabels[analysis.timelines.residence] : 'N/A'}</span>
-            </ResultItem>
-            <ResultItem>
-              <span>Employment Timeline:</span>
-              <span>{analysis.steps.employment ? timelineLabels[analysis.timelines.employment] : 'N/A'}</span>
+              <span>Required Type:</span>
+              <span>{analysis.signature}</span>
             </ResultItem>
           </ResultSection>
         </ResultCard>

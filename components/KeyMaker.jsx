@@ -158,11 +158,20 @@ const CopyButton = styled.button`
 `;
 
 const timelineOptions = [
-  { value: '000', label: '1 Entry (0 years)' },
-  { value: '001', label: '3 Years' },
-  { value: '010', label: '5 Years' },
-  { value: '011', label: '7 Years' },
-  { value: '100', label: '10 Years' }
+  { value: 'N', label: 'Not Required' },
+  { value: 'R1', label: '1 Year' },
+  { value: 'R3', label: '3 Years' },
+  { value: 'R5', label: '5 Years' }
+];
+
+const employmentOptions = [
+  { value: 'N', label: 'Not Required' },
+  { value: 'E1', label: '1 Year' },
+  { value: 'E3', label: '3 Years' },
+  { value: 'E5', label: '5 Years' },
+  { value: 'EN1', label: '1 Employer' },
+  { value: 'EN2', label: '2 Employers' },
+  { value: 'EN3', label: '3 Employers' }
 ];
 
 const languages = [
@@ -173,36 +182,62 @@ const languages = [
 
 const KeyMaker = () => {
   const [language, setLanguage] = useState('en');
+  const [personalInfo, setPersonalInfo] = useState({
+    email: true,
+    phone: false,
+    address: false
+  });
   const [consents, setConsents] = useState({
-    driverLicense: false,
     drugTest: false,
+    taxForms: false,
     biometric: false
   });
-  const [steps, setSteps] = useState({
-    education: false,
-    professionalLicense: false,
-    residence: false,
-    employment: false
-  });
-  const [timelines, setTimelines] = useState({
-    residence: '000',
-    employment: '000'
-  });
+  const [residenceHistory, setResidenceHistory] = useState('N');
+  const [employmentHistory, setEmploymentHistory] = useState('N');
+  const [education, setEducation] = useState(false);
+  const [professionalLicense, setProfessionalLicense] = useState(false);
+  const [signature, setSignature] = useState('W'); // W for wet, E for electronic
   const [copied, setCopied] = useState(false);
 
+  const generatePersonalInfoFacet = useCallback(() => {
+    let facet = '';
+    if (personalInfo.email) facet += 'E';
+    if (personalInfo.phone) facet += 'P';
+    if (personalInfo.address) facet += 'A';
+    return facet || 'E'; // Default to E if nothing selected
+  }, [personalInfo]);
+
+  const generateConsentsFacet = useCallback(() => {
+    if (!consents.drugTest && !consents.taxForms && !consents.biometric) return 'N';
+    let facet = '';
+    if (consents.drugTest) facet += 'D';
+    if (consents.taxForms) facet += 'T';
+    if (consents.biometric) facet += 'B';
+    return facet;
+  }, [consents]);
+
   const generateKey = useCallback(() => {
-    let bits = '1';
-    bits += consents.driverLicense ? '1' : '0';
-    bits += consents.drugTest ? '1' : '0';
-    bits += consents.biometric ? '1' : '0';
-    bits += steps.education ? '1' : '0';
-    bits += steps.professionalLicense ? '1' : '0';
-    bits += steps.residence ? '1' : '0';
-    bits += steps.residence ? timelines.residence : '000';
-    bits += steps.employment ? '1' : '0';
-    bits += steps.employment ? timelines.employment : '000';
-    return language + bits;
-  }, [language, consents, steps, timelines]);
+    const facets = [
+      language,
+      generatePersonalInfoFacet(),
+      generateConsentsFacet(),
+      residenceHistory,
+      employmentHistory,
+      education ? 'E' : 'N',
+      professionalLicense ? 'P' : 'N',
+      signature
+    ];
+    return facets.join('-');
+  }, [
+    language,
+    personalInfo,
+    consents,
+    residenceHistory,
+    employmentHistory,
+    education,
+    professionalLicense,
+    signature
+  ]);
 
   const handleCopyToClipboard = () => {
     const key = generateKey();
@@ -214,6 +249,13 @@ const KeyMaker = () => {
       .catch(err => console.error('Failed to copy key:', err));
   };
 
+  const handlePersonalInfoChange = (name) => {
+    setPersonalInfo(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  };
+
   const handleConsentChange = (name) => {
     setConsents(prev => ({
       ...prev,
@@ -221,53 +263,53 @@ const KeyMaker = () => {
     }));
   };
 
-  const handleStepChange = (name) => {
-    setSteps(prev => {
-      const newSteps = {
-        ...prev,
-        [name]: !prev[name]
-      };
-      
-      if (!newSteps[name]) {
-        setTimelines(prev => ({
-          ...prev,
-          [name]: '000'
-        }));
-      }
-      
-      return newSteps;
-    });
-  };
-
-  const handleTimelineChange = (name, value) => {
-    setTimelines(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   return (
     <Container>
       <Header>
-        <Title>Collection Key Generator</Title>
-        <Description>
-          Generate a configuration key for your form by selecting the required steps and options
-        </Description>
+        <Title>Trua Collect Key Maker</Title>
+        <Description>Generate verification requirement keys for Trua Collect</Description>
       </Header>
 
       <Grid>
         <Card>
           <CardTitle>Language</CardTitle>
-          <Select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          >
+          <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
             {languages.map(lang => (
               <option key={lang.code} value={lang.code}>
-                {lang.label} ({lang.code})
+                {lang.label}
               </option>
             ))}
           </Select>
+        </Card>
+
+        <Card>
+          <CardTitle>Personal Information</CardTitle>
+          <CheckboxGroup>
+            <CheckboxLabel>
+              <Checkbox
+                type="checkbox"
+                checked={personalInfo.email}
+                onChange={() => handlePersonalInfoChange('email')}
+              />
+              Email (Required)
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <Checkbox
+                type="checkbox"
+                checked={personalInfo.phone}
+                onChange={() => handlePersonalInfoChange('phone')}
+              />
+              Phone Number
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <Checkbox
+                type="checkbox"
+                checked={personalInfo.address}
+                onChange={() => handlePersonalInfoChange('address')}
+              />
+              Address
+            </CheckboxLabel>
+          </CheckboxGroup>
         </Card>
 
         <Card>
@@ -276,105 +318,89 @@ const KeyMaker = () => {
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={consents.driverLicense}
-                onChange={() => handleConsentChange('driverLicense')}
-              />
-              Driver's License Consent
-            </CheckboxLabel>
-
-            <CheckboxLabel>
-              <Checkbox
-                type="checkbox"
                 checked={consents.drugTest}
                 onChange={() => handleConsentChange('drugTest')}
               />
-              Drug Test Consent
+              Drug Test
             </CheckboxLabel>
-
+            <CheckboxLabel>
+              <Checkbox
+                type="checkbox"
+                checked={consents.taxForms}
+                onChange={() => handleConsentChange('taxForms')}
+              />
+              Tax Forms
+            </CheckboxLabel>
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
                 checked={consents.biometric}
                 onChange={() => handleConsentChange('biometric')}
               />
-              Biometric Consent
+              Biometric Data
             </CheckboxLabel>
           </CheckboxGroup>
         </Card>
 
         <Card>
-          <CardTitle>Form Steps</CardTitle>
+          <CardTitle>Residence History</CardTitle>
+          <Select 
+            value={residenceHistory} 
+            onChange={(e) => setResidenceHistory(e.target.value)}
+          >
+            {timelineOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </Card>
+
+        <Card>
+          <CardTitle>Employment History</CardTitle>
+          <Select 
+            value={employmentHistory} 
+            onChange={(e) => setEmploymentHistory(e.target.value)}
+          >
+            {employmentOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </Card>
+
+        <Card>
+          <CardTitle>Additional Requirements</CardTitle>
           <CheckboxGroup>
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={steps.education}
-                onChange={() => handleStepChange('education')}
+                checked={education}
+                onChange={() => setEducation(!education)}
               />
-              Education History
+              Education Verification
             </CheckboxLabel>
-
             <CheckboxLabel>
               <Checkbox
                 type="checkbox"
-                checked={steps.professionalLicense}
-                onChange={() => handleStepChange('professionalLicense')}
+                checked={professionalLicense}
+                onChange={() => setProfessionalLicense(!professionalLicense)}
               />
-              Professional License
+              Professional License Verification
             </CheckboxLabel>
-
-            <CheckboxLabel>
-              <Checkbox
-                type="checkbox"
-                checked={steps.residence}
-                onChange={() => handleStepChange('residence')}
-              />
-              Residence History
-            </CheckboxLabel>
-            
-            {steps.residence && (
-              <RadioGroup>
-                {timelineOptions.map(option => (
-                  <CheckboxLabel key={option.value}>
-                    <input
-                      type="radio"
-                      name="residenceTimeline"
-                      value={option.value}
-                      checked={timelines.residence === option.value}
-                      onChange={(e) => handleTimelineChange('residence', e.target.value)}
-                    />
-                    {option.label}
-                  </CheckboxLabel>
-                ))}
-              </RadioGroup>
-            )}
-
-            <CheckboxLabel>
-              <Checkbox
-                type="checkbox"
-                checked={steps.employment}
-                onChange={() => handleStepChange('employment')}
-              />
-              Employment History
-            </CheckboxLabel>
-            
-            {steps.employment && (
-              <RadioGroup>
-                {timelineOptions.map(option => (
-                  <CheckboxLabel key={option.value}>
-                    <input
-                      type="radio"
-                      name="employmentTimeline"
-                      value={option.value}
-                      checked={timelines.employment === option.value}
-                      onChange={(e) => handleTimelineChange('employment', e.target.value)}
-                    />
-                    {option.label}
-                  </CheckboxLabel>
-                ))}
-              </RadioGroup>
-            )}
           </CheckboxGroup>
+        </Card>
+
+        <Card>
+          <CardTitle>Signature Type</CardTitle>
+          <Select 
+            value={signature} 
+            onChange={(e) => setSignature(e.target.value)}
+          >
+            <option value="W">Wet Signature</option>
+            <option value="E">Electronic Signature</option>
+          </Select>
         </Card>
 
         <OutputCard>
