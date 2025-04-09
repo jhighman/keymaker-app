@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiSearch, FiLink, FiUser } from 'react-icons/fi';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import endpoints from '../config/endpoints.json';
+import { customerService, initializeDatabase } from '../services/api';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -90,32 +91,82 @@ const TableHeader = styled.th`
 `;
 
 const KeyAnalyser = () => {
+  console.debug('KeyAnalyser component mounted');
   const [input, setInput] = useState('');
   const [analysis, setAnalysis] = useState(null);
-  const [searchParams] = useSearchParams();
+  const [customerName, setCustomerName] = useState(null);
+  const location = useLocation();
+
+  // Initialize database in local mode
+  useEffect(() => {
+    console.debug('Initializing database in local mode for KeyAnalyser');
+    initializeDatabase('local');
+  }, []);
 
   useEffect(() => {
-    const keyParam = searchParams.get('key');
-    if (keyParam) {
-      setInput(keyParam);
-      analyseInput(keyParam);
+    console.debug('KeyAnalyser useEffect triggered');
+    console.debug('Current location:', location);
+    console.debug('Location state:', location.state);
+    
+    if (location.state?.url) {
+      console.debug('Setting input from location state:', location.state.url);
+      setInput(location.state.url);
+      analyseInput(location.state.url);
+    } else {
+      console.debug('No URL in location state');
     }
-  }, [searchParams]);
+  }, [location]);
+
+  const fetchCustomerName = async (spid) => {
+    try {
+      console.debug('Fetching customer details for SPID:', spid);
+      const customer = await customerService.getCustomer(spid);
+      console.debug('Found customer:', customer);
+      if (customer?.name) {
+        setCustomerName(customer.name);
+      }
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+    }
+  };
 
   const extractKeyFromUrl = (url) => {
-    // Handle full URLs
-    const urlMatch = url.match(/\/collect\/([\w-]+)/);
-    if (urlMatch) return urlMatch[1];
+    console.debug('Extracting key from URL:', url);
+    try {
+      // Create URL object for proper parameter parsing
+      let urlObj;
+      try {
+        urlObj = new URL(url);
+      } catch {
+        // If URL parsing fails, treat as relative URL
+        urlObj = new URL(url, 'http://dummy.com');
+      }
 
-    // Handle query parameter style URLs
-    const queryMatch = url.match(/[?&]key=([\w-]+)/);
-    if (queryMatch) return queryMatch[1];
+      // Extract SPID if present
+      const spid = urlObj.searchParams.get('spid');
+      console.debug('Extracted SPID:', spid);
 
-    // Handle individual IDs
-    const puidMatch = url.match(/&puid=([\w-]+)/);
-    const puid = puidMatch ? puidMatch[1] : null;
+      // Handle full URLs with /collect/ path
+      const urlMatch = url.match(/\/collect\/([\w-]+)/);
+      if (urlMatch) {
+        console.debug('Found key in URL path:', urlMatch[1]);
+        return { key: urlMatch[1], spid };
+      }
 
-    return { key: url, puid };
+      // Handle query parameter style URLs
+      const queryMatch = url.match(/[?&]key=([\w-]+)/);
+      if (queryMatch) {
+        console.debug('Found key in query params:', queryMatch[1]);
+        return { key: queryMatch[1], spid };
+      }
+
+      // If no matches, assume the input is the key itself
+      console.debug('Using input as key:', url);
+      return { key: url, spid: null };
+    } catch (error) {
+      console.error('Error extracting key from URL:', error);
+      return { key: url, spid: null };
+    }
   };
 
   const getEnvironmentFromUrl = (url) => {
@@ -174,44 +225,67 @@ const KeyAnalyser = () => {
     };
   };
 
-  const analyseInput = (value) => {
+  const analyseInput = async (value) => {
+    console.debug('analyseInput called with:', value);
     const inputValue = value.trim();
     
     // Initialize analysis object
     let analysisResult = {
       inputType: 'key',
       environment: null,
+      spid: null,
+      customerName: null,
+      customerLookupStatus: null,
       individualId: null,
       key: null,
       keyAnalysis: null
     };
 
+    console.debug('Processing input value:', inputValue);
+
     // Determine if input is a URL
     if (inputValue.includes('http') || inputValue.includes('/collect/')) {
       analysisResult.inputType = 'url';
       analysisResult.environment = getEnvironmentFromUrl(inputValue);
+      console.debug('URL detected, environment:', analysisResult.environment);
       
       // Check for individual ID
       if (inputValue.includes('puid=')) {
         analysisResult.inputType = 'individual';
         analysisResult.individualId = inputValue.split('puid=')[1].split('&')[0];
+        console.debug('Individual ID found:', analysisResult.individualId);
       }
     }
 
-    // Extract key
-    const keyData = extractKeyFromUrl(inputValue);
-    const key = typeof keyData === 'string' ? keyData : keyData.key;
+    // Extract key and SPID
+    const { key, spid } = extractKeyFromUrl(inputValue);
+    console.debug('Extracted key data:', { key, spid });
     analysisResult.key = key;
+    analysisResult.spid = spid;
 
-    // If we got an individual ID from key extraction, use it
-    if (keyData.puid) {
-      analysisResult.inputType = 'individual';
-      analysisResult.individualId = keyData.puid;
+    if (spid) {
+      // Fetch customer name if SPID is present
+      try {
+        console.debug('Attempting to fetch customer details for SPID:', spid);
+        const customer = await customerService.getCustomer(spid);
+        console.debug('Customer lookup result:', customer);
+        
+        if (customer?.name) {
+          analysisResult.customerName = customer.name;
+          analysisResult.customerLookupStatus = 'found';
+        } else {
+          analysisResult.customerLookupStatus = 'not_found';
+        }
+      } catch (error) {
+        console.error('Error fetching customer details:', error);
+        analysisResult.customerLookupStatus = 'error';
+      }
     }
+
+    console.debug('Final analysis result:', analysisResult);
 
     // Analyse the key
     analysisResult.keyAnalysis = analyseKey(key);
-
     setAnalysis(analysisResult);
   };
 
@@ -240,6 +314,28 @@ const KeyAnalyser = () => {
                     <TableRow>
                       <TableCell>Description</TableCell>
                       <TableCell>{analysis.environment.description}</TableCell>
+                    </TableRow>
+                  </>
+                )}
+                {analysis.spid && (
+                  <>
+                    <TableRow>
+                      <TableCell>Customer SPID</TableCell>
+                      <TableCell>{analysis.spid}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Customer Details</TableCell>
+                      <TableCell>
+                        {analysis.customerLookupStatus === 'found' ? (
+                          analysis.customerName
+                        ) : analysis.customerLookupStatus === 'not_found' ? (
+                          'Customer not found'
+                        ) : analysis.customerLookupStatus === 'error' ? (
+                          'Error looking up customer'
+                        ) : (
+                          'Loading...'
+                        )}
+                      </TableCell>
                     </TableRow>
                   </>
                 )}

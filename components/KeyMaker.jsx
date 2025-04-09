@@ -2,14 +2,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader, FiSearch } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
-import { keyService, customerService } from '../services/api';
+import { keyService, customerService, initializeDatabase } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: ${props => props.theme.spacing['2xl']};
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 const Header = styled.header`
@@ -255,37 +254,34 @@ const CustomerLinkCard = styled(Card)`
   }
 `;
 
-const CustomerInput = styled.input`
-  width: 100%;
-  padding: ${props => props.theme.spacing.md};
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.md};
+const CustomerInputGroup = styled.div`
+  display: flex;
+  gap: ${props => props.theme.spacing.md};
   margin-bottom: ${props => props.theme.spacing.md};
-  font-size: 1rem;
+`;
 
+const CustomerInputField = styled.input`
+  flex: 1;
+  padding: ${props => props.theme.spacing.md};
+  border: 2px solid ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.borderRadius.md};
+  font-family: ${props => props.theme.fonts.body};
+  
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 2px ${props => props.theme.colors.primary}20;
   }
 `;
 
-const SaveButton = styled(CopyButton)`
-  background: ${props => props.theme.colors.primary};
-  color: white;
-  margin-bottom: ${props => props.theme.spacing.lg};
+const CustomerInfoDisplay = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${props => props.theme.spacing.xs};
 `;
 
-const CustomerLinksList = styled.div`
-  margin-top: ${props => props.theme.spacing.xl};
-`;
-
-const CustomerLinkItem = styled.div`
-  padding: ${props => props.theme.spacing.md};
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.md};
-  margin-bottom: ${props => props.theme.spacing.md};
-  background: white;
+const CustomerDetail = styled.div`
+  font-size: 0.9rem;
+  color: ${props => props.theme.colors.textLight};
 `;
 
 const CustomerName = styled.div`
@@ -331,7 +327,7 @@ const IndividualSection = styled.div`
   border-top: 1px solid ${props => props.theme.colors.border};
 `;
 
-const IndividualInput = styled(CustomerInput)`
+const IndividualInput = styled(CustomerInputField)`
   margin-bottom: ${props => props.theme.spacing.sm};
 `;
 
@@ -441,58 +437,104 @@ const OutputGrid = styled(Grid)`
   gap: ${props => props.theme.spacing.xl};
 `;
 
+const CustomerList = styled.div`
+  margin-top: ${props => props.theme.spacing.xl};
+`;
+
+const CustomerLinkItem = styled.div`
+  padding: ${props => props.theme.spacing.md};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.borderRadius.md};
+  margin-bottom: ${props => props.theme.spacing.md};
+  background: white;
+`;
+
+const SaveButton = styled(CopyButton)`
+  background: ${props => props.theme.colors.primary};
+  color: white;
+  margin-bottom: ${props => props.theme.spacing.lg};
+`;
+
+const EndpointSection = styled.div`
+  margin-bottom: ${props => props.theme.spacing.lg};
+`;
+
+const CollectionLinkDisplay = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  padding: ${props => props.theme.spacing.lg};
+  background: ${props => props.theme.colors.secondaryDark};
+  border-radius: ${props => props.theme.borderRadius.md};
+  font-family: ${props => props.theme.fonts.mono};
+  word-break: break-all;
+  color: white;
+`;
+
+const DatabaseEnvironmentSelect = styled(Select)`
+  margin-bottom: ${props => props.theme.spacing.lg};
+  background-color: ${props => props.theme.colors.warning};
+  color: white;
+  border: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px ${props => props.theme.colors.warning}40;
+  }
+`;
+
 const KeyMaker = () => {
+  const [databaseEnvironment, setDatabaseEnvironment] = useState('local');
+  const [selectedEndpoint, setSelectedEndpoint] = useState(endpoints.endpoints[0]);
+  
+  // Initialize savedKeys from localStorage
+  const [savedKeys, setSavedKeys] = useState(() => {
+    try {
+      const stored = localStorage.getItem('keymaker_customers');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return [];
+    }
+  });
+
+  // Keep localStorage in sync with savedKeys
+  useEffect(() => {
+    try {
+      localStorage.setItem('keymaker_customers', JSON.stringify(savedKeys));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [savedKeys]);
+
   const [language, setLanguage] = useState('en');
   const [personalInfo, setPersonalInfo] = useState({
-    email: true,
+    mode: 'essential',
+    dob: false,
     phone: false,
+    email: false,
     address: false
   });
   const [consents, setConsents] = useState({
-    drugTest: false,
-    taxForms: false,
-    biometric: false
+    background: false,
+    credit: false,
+    criminal: false
   });
   const [residenceHistory, setResidenceHistory] = useState('N');
   const [employmentHistory, setEmploymentHistory] = useState('N');
-  const [education, setEducation] = useState(false);
-  const [professionalLicense, setProfessionalLicense] = useState(false);
-  const [signature, setSignature] = useState('W'); // W for wet, E for electronic
-  const [copied, setCopied] = useState(false);
-  const [selectedEndpoint, setSelectedEndpoint] = useState(endpoints.endpoints[0].id);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [customerName, setCustomerName] = useState('');
-  const [individualId, setIndividualId] = useState('');
-  const [customerLinks, setCustomerLinks] = useState([]);
+  const [education, setEducation] = useState('N');
+  const [professionalLicense, setProfessionalLicense] = useState('N');
+  const [signature, setSignature] = useState('W');
   const [generatedKey, setGeneratedKey] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerSpid, setCustomerSpid] = useState('');
+  const [individualId, setIndividualId] = useState('');
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [customerLinks, setCustomerLinks] = useState([]);
   
-  // New state for API integration
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [savedKeys, setSavedKeys] = useState([]);
   const navigate = useNavigate();
-
-  // Fetch saved keys on component mount
-  useEffect(() => {
-    const fetchSavedKeys = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const keys = await keyService.getKeys();
-        setSavedKeys(keys);
-        
-        const customers = await customerService.getCustomers();
-        setCustomerLinks(customers);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load saved data. Using local state only.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSavedKeys();
-  }, []);
 
   const generatePersonalInfoFacet = useCallback(() => {
     try {
@@ -562,8 +604,20 @@ const KeyMaker = () => {
     }, 0);
   }, [language, personalInfo, consents, residenceHistory, employmentHistory, education, professionalLicense, signature, generateKey]);
 
+  const handleDatabaseEnvironmentChange = (event) => {
+    const newEnvironment = event.target.value;
+    console.debug('Changing database environment to:', newEnvironment);
+    setDatabaseEnvironment(newEnvironment);
+  };
+
+  const handleEndpointChange = (event) => {
+    const endpoint = endpoints.endpoints.find(e => e.id === event.target.value);
+    console.debug('Changing collection endpoint to:', endpoint);
+    setSelectedEndpoint(endpoint);
+  };
+
   const getSelectedEndpoint = useCallback(() => {
-    return endpoints.endpoints.find(endpoint => endpoint.id === selectedEndpoint);
+    return selectedEndpoint;
   }, [selectedEndpoint]);
 
   const generateCollectionLink = useCallback(() => {
@@ -588,8 +642,7 @@ const KeyMaker = () => {
   };
 
   const handleCopyCollectionLink = async () => {
-    const endpoint = getSelectedEndpoint();
-    const collectionLink = `${endpoint.url}/collect/${generatedKey}`;
+    const collectionLink = `${selectedEndpoint.url}/collect/${generatedKey}`;
     console.debug('Copying collection link to clipboard:', collectionLink);
     try {
       await navigator.clipboard.writeText(collectionLink);
@@ -626,75 +679,80 @@ const KeyMaker = () => {
     });
   };
 
-  // Updated to use API
   const handleSaveCustomerLink = async () => {
-    if (!customerName.trim()) return;
-    
-    const key = generateKey();
-    const link = generateCollectionLink();
-    
-    const newCustomerLink = {
+    if (!customerName || !customerSpid) {
+      setError('Please enter both customer name and SPID');
+      return;
+    }
+
+    const newCustomer = {
+      id: Date.now().toString(),
       name: customerName,
-      link: link,
-      endpoint: getSelectedEndpoint().name,
+      spid: customerSpid,
+      link: `${selectedEndpoint.url}/collect/${generatedKey}?spid=${encodeURIComponent(customerSpid)}`,
       individuals: []
     };
-    
+
     try {
       setLoading(true);
       setError(null);
       
-      // Save the key
-      const keyData = {
-        value: key,
-        language,
-        personalInfo,
-        consents,
-        residenceHistory: {
-          required: residenceHistory !== 'N',
-          years: residenceHistory === 'N' ? 0 : parseInt(residenceHistory.slice(1))
-        },
-        employmentHistory: {
-          required: employmentHistory !== 'N',
-          mode: employmentHistory.startsWith('EN') ? 'employers' : 'years',
-          value: employmentHistory === 'N' ? 0 : parseInt(employmentHistory.slice(employmentHistory.startsWith('EN') ? 2 : 1))
-        },
-        education,
-        professionalLicense,
-        signature: signature === 'W' ? 'Wet' : 'Electronic'
-      };
-      
-      await keyService.createKey(keyData);
-      
-      // Save the customer
-      const savedCustomer = await customerService.createCustomer(newCustomerLink);
-      
-      // Update local state
-      setCustomerLinks(prev => [...prev, savedCustomer]);
-      setSavedKeys(prev => [...prev, keyData]);
+      if (databaseEnvironment === 'production') {
+        // Only try API calls in production mode
+        try {
+          console.debug('Creating customer via API:', newCustomer);
+          const savedCustomer = await customerService.createCustomer(newCustomer);
+          console.debug('Customer created:', savedCustomer);
+          setSavedKeys(prev => [...(prev || []), savedCustomer]);
+        } catch (apiError) {
+          console.error('API create customer failed:', apiError);
+          setError('Failed to save customer to production database. Please try again.');
+          return;
+        }
+      } else {
+        // In local mode, just use local state
+        console.debug('Local mode: Saving customer to local state:', newCustomer);
+        setSavedKeys(prev => [...(prev || []), newCustomer]);
+      }
+
       setCustomerName('');
+      setCustomerSpid('');
+      setError('');
     } catch (err) {
-      console.error('Error saving customer link:', err);
-      setError('Failed to save customer link. Please try again.');
-      
-      // Fallback to local state if API fails
-      const fallbackCustomer = {
-        id: Date.now(),
-        name: customerName,
-        key,
-        link,
-        endpoint: getSelectedEndpoint().name,
-        individuals: []
-      };
-      
-      setCustomerLinks(prev => [...prev, fallbackCustomer]);
-      setCustomerName('');
+      console.error('Error in handleSaveCustomerLink:', err);
+      setError('Failed to save customer. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Updated to use API
+  const handleDeleteCustomerLink = async (id) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (databaseEnvironment === 'production') {
+        // Only try API calls in production mode
+        try {
+          await customerService.deleteCustomer(id);
+        } catch (apiError) {
+          console.error('API delete failed:', apiError);
+          setError('Failed to delete customer from production database. Please try again.');
+          return;
+        }
+      }
+      
+      // Always update local state
+      setSavedKeys(prev => prev.filter(customer => customer.id !== id));
+      
+    } catch (err) {
+      console.error('Error in handleDeleteCustomerLink:', err);
+      setError('Failed to delete customer. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddIndividual = async (customerId) => {
     if (!individualId.trim()) return;
 
@@ -708,96 +766,80 @@ const KeyMaker = () => {
         timestamp: Date.now()
       };
       
-      // Add individual via API
-      const updatedCustomer = await customerService.addIndividual(customerId, individualData);
-      
-      // Update local state
-      setCustomerLinks(prev => prev.map(customer =>
-        customer.id === customerId ? updatedCustomer : customer
-      ));
-      
-      setIndividualId('');
-    } catch (err) {
-      console.error('Error adding individual:', err);
-      setError('Failed to add individual. Please try again.');
-      
-      // Fallback to local state if API fails
-      setCustomerLinks(prev => prev.map(customer => {
-        if (customer.id === customerId) {
-          return {
-            ...customer,
-            individuals: [...customer.individuals, {
-              id: individualId,
-              status: 'pending',
-              timestamp: Date.now()
-            }]
-          };
+      if (databaseEnvironment === 'production') {
+        // Only try API calls in production mode
+        try {
+          const updatedCustomer = await customerService.addIndividual(customerId, individualData);
+          setSavedKeys(prev => prev.map(customer =>
+            customer.id === customerId ? updatedCustomer : customer
+          ));
+        } catch (apiError) {
+          console.error('API add individual failed:', apiError);
+          setError('Failed to add individual to production database. Please try again.');
+          return;
         }
-        return customer;
-      }));
+      } else {
+        // In local mode, just update local state
+        setSavedKeys(prev => prev.map(customer => {
+          if (customer.id === customerId) {
+            return {
+              ...customer,
+              individuals: [...(customer.individuals || []), individualData]
+            };
+          }
+          return customer;
+        }));
+      }
       
       setIndividualId('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Updated to use API
-  const handleDeleteCustomerLink = async (id) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Delete customer via API
-      await customerService.deleteCustomer(id);
-      
-      // Update local state
-      setCustomerLinks(prev => prev.filter(link => link.id !== id));
     } catch (err) {
-      console.error('Error deleting customer:', err);
-      setError('Failed to delete customer. Please try again.');
-      
-      // Fallback to local state if API fails
-      setCustomerLinks(prev => prev.filter(link => link.id !== id));
+      console.error('Error in handleAddIndividual:', err);
+      setError('Failed to add individual. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Updated to use API
   const handleDeleteIndividual = async (customerId, individualId) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Remove individual via API
-      const updatedCustomer = await customerService.removeIndividual(customerId, individualId);
+      if (databaseEnvironment === 'production') {
+        // Only try API calls in production mode
+        try {
+          await customerService.removeIndividual(customerId, individualId);
+        } catch (apiError) {
+          console.error('API delete individual failed:', apiError);
+          setError('Failed to delete individual from production database. Please try again.');
+          return;
+        }
+      }
       
-      // Update local state
-      setCustomerLinks(prev => prev.map(customer =>
-        customer.id === customerId ? updatedCustomer : customer
-      ));
-    } catch (err) {
-      console.error('Error deleting individual:', err);
-      setError('Failed to delete individual. Please try again.');
-      
-      // Fallback to local state if API fails
-      setCustomerLinks(prev => prev.map(customer => {
+      // Always update local state
+      setSavedKeys(prev => prev.map(customer => {
         if (customer.id === customerId) {
           return {
             ...customer,
-            individuals: customer.individuals.filter(ind => ind.id !== individualId)
+            individuals: (customer.individuals || []).filter(ind => ind.id !== individualId)
           };
         }
         return customer;
       }));
+      
+    } catch (err) {
+      console.error('Error in handleDeleteIndividual:', err);
+      setError('Failed to delete individual. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const getIndividualLink = (customerLink, individualId) => {
-    return `${customerLink}&puid=${individualId}`;
+    // Add puid to the existing URL while preserving the structure
+    const url = new URL(customerLink);
+    url.searchParams.append('puid', individualId);
+    return url.toString();
   };
 
   const handleCopyIndividualLink = async (customerLink, individualId) => {
@@ -811,23 +853,52 @@ const KeyMaker = () => {
   };
 
   const handleAnalyze = (value, type = 'key') => {
-    let analysisValue = value;
+    let analysisValue;
     
-    // If this is from a collection link, construct the full URL
+    console.debug('handleAnalyze called with:', { value, type });
+    console.debug('Current endpoint:', selectedEndpoint);
+    console.debug('Current generated key:', generatedKey);
+    
     if (type === 'collection') {
-      const endpoint = getSelectedEndpoint();
-      analysisValue = `${endpoint.url}/collect/${generatedKey}`;
-    } else if (type === 'customer') {
-      // For customer links, include the full URL
-      const endpoint = getSelectedEndpoint();
-      analysisValue = `${endpoint.url}/collect/${generatedKey}`;
-    } else if (type === 'individual') {
-      // For individual links, include the full URL with PUID
-      const endpoint = getSelectedEndpoint();
-      analysisValue = `${endpoint.url}/collect/${generatedKey}&puid=${value}`;
+      // For collection links, construct the full URL with /collect/ path
+      analysisValue = `${selectedEndpoint.url}/collect/${generatedKey}`;
+      console.debug('Collection link analysis value:', analysisValue);
+    } else if (type === 'customer' || type === 'individual') {
+      // For customer and individual links, use the full URL as is
+      analysisValue = value;
+      console.debug('Customer/Individual link analysis value:', analysisValue);
+    } else {
+      // For raw key analysis
+      analysisValue = `${selectedEndpoint.url}/collect/${value}`;
+      console.debug('Raw key analysis value:', analysisValue);
     }
 
-    navigate(`/analyse?key=${encodeURIComponent(analysisValue)}`);
+    console.debug('Final analysis value:', analysisValue);
+    console.debug('Navigating to analyze with state:', {
+      url: analysisValue,
+      type,
+      endpoint: selectedEndpoint
+    });
+
+    navigate('/analyze', {
+      state: {
+        url: analysisValue,
+        type,
+        endpoint: selectedEndpoint
+      }
+    });
+  };
+
+  const handleCopyCustomerLink = async (link) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedLink(true);
+      setTimeout(() => {
+        setCopiedLink(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy customer link:', error);
+    }
   };
 
   return (
@@ -836,6 +907,17 @@ const KeyMaker = () => {
         <Title>KeyMaker</Title>
         <Description>Generate and manage background check requirement keys</Description>
       </Header>
+
+      <Card style={{ marginBottom: '2rem' }}>
+        <CardTitle>Database Environment</CardTitle>
+        <DatabaseEnvironmentSelect 
+          value={databaseEnvironment} 
+          onChange={handleDatabaseEnvironmentChange}
+        >
+          <option value="local">Local Database</option>
+          <option value="production">Production Database</option>
+        </DatabaseEnvironmentSelect>
+      </Card>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {loading && <LoadingSpinner><FiLoader size={24} /></LoadingSpinner>}
@@ -1002,36 +1084,38 @@ const KeyMaker = () => {
         </OutputCard>
 
         <CollectionLinkCard>
-          <OutputTitle>
+          <CardTitle>
             <StepNumber>2</StepNumber>
             Collection Link
-          </OutputTitle>
-          <EndpointSelect
-            value={selectedEndpoint}
-            onChange={(e) => setSelectedEndpoint(e.target.value)}
-          >
-            {endpoints.endpoints.map(endpoint => (
-              <option key={endpoint.id} value={endpoint.id}>
-                {endpoint.name}
-              </option>
-            ))}
-          </EndpointSelect>
-          <EndpointDescription>
-            {getSelectedEndpoint()?.description}
-          </EndpointDescription>
+          </CardTitle>
+          <EndpointSection>
+            <EndpointSelect value={selectedEndpoint?.id} onChange={handleEndpointChange}>
+              {endpoints.endpoints.map(endpoint => (
+                <option key={endpoint.id} value={endpoint.id}>
+                  {endpoint.name}
+                </option>
+              ))}
+            </EndpointSelect>
+            <EndpointDescription>{selectedEndpoint?.description}</EndpointDescription>
+          </EndpointSection>
           <OutputContainer>
             <OutputField
               type="text"
-              value={generateCollectionLink()}
+              value={`${selectedEndpoint.url}/collect/${generatedKey}`}
               readOnly
               onClick={(e) => e.target.select()}
             />
-            <AnalyzeButton onClick={() => handleAnalyze(generatedKey, 'collection')}>
+            <AnalyzeButton onClick={() => {
+              console.debug('Collection link analyze button clicked');
+              console.debug('Current generated key:', generatedKey);
+              console.debug('Current endpoint:', selectedEndpoint);
+              handleAnalyze(`${selectedEndpoint.url}/collect/${generatedKey}`, 'collection');
+            }}>
               <FiSearch /> Analyze
             </AnalyzeButton>
           </OutputContainer>
           <CopyButton onClick={handleCopyCollectionLink}>
-            {copiedLink ? 'Copied!' : 'Copy to Clipboard'}
+            <FiCopy /> {copiedLink ? 'Copied!' : 'Copy Link'}
           </CopyButton>
         </CollectionLinkCard>
 
@@ -1040,20 +1124,32 @@ const KeyMaker = () => {
             <StepNumber>3</StepNumber>
             Customer Collection Links
           </CardTitle>
-          <CustomerInput
-            type="text"
-            placeholder="Enter customer name"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-          <SaveButton onClick={handleSaveCustomerLink}>
-            <FiLink /> Save Customer Link
-          </SaveButton>
-
-          <CustomerLinksList>
-            {customerLinks.map(customer => (
+          <CustomerInputGroup>
+            <CustomerInputField
+              type="text"
+              placeholder="Enter customer name"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+            <CustomerInputField
+              type="text"
+              placeholder="Enter customer SPID"
+              value={customerSpid}
+              onChange={(e) => setCustomerSpid(e.target.value)}
+            />
+            <SaveButton onClick={handleSaveCustomerLink}>
+              <FiLink /> Save Customer Link
+            </SaveButton>
+          </CustomerInputGroup>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          
+          <CustomerList>
+            {(savedKeys || []).map(customer => (
               <CustomerLinkItem key={customer.id}>
-                <CustomerName>{customer.name}</CustomerName>
+                <CustomerInfoDisplay>
+                  <CustomerName>{customer.name}</CustomerName>
+                  <CustomerDetail>SPID: {customer.spid}</CustomerDetail>
+                </CustomerInfoDisplay>
                 <CustomerLink>{customer.link}</CustomerLink>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <CopyButton onClick={() => handleCopyCustomerLink(customer.link)}>
@@ -1081,7 +1177,7 @@ const KeyMaker = () => {
                   </div>
 
                   <IndividualList>
-                    {customer.individuals.map(individual => (
+                    {(customer.individuals || []).map(individual => (
                       <IndividualItem key={individual.id}>
                         <IndividualId>{individual.id}</IndividualId>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1107,7 +1203,7 @@ const KeyMaker = () => {
                 </IndividualSection>
               </CustomerLinkItem>
             ))}
-          </CustomerLinksList>
+          </CustomerList>
         </CustomerLinkCard>
       </OutputGrid>
     </Container>
