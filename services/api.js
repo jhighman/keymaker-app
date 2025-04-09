@@ -36,6 +36,29 @@ const saveLocalCustomers = (customers) => {
 
 // API Services
 export const customerService = {
+  getCustomers: async () => {
+    console.debug('Getting all customers in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, return all customers from localStorage
+      const customers = getLocalCustomers();
+      console.debug('Local customers:', customers);
+      return customers;
+    }
+
+    // Production mode - use API
+    try {
+      const response = await fetch(`${DB_URL}/customers`);
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      const data = await response.json();
+      console.debug('Customers from API:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in getCustomers:', error);
+      throw error;
+    }
+  },
+
   getCustomer: async (spid) => {
     console.debug('Getting customer with SPID:', spid, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
     

@@ -15,6 +15,7 @@ const App = () => {
         <Navigation />
         <Routes>
           <Route path="/" element={<KeyMaker />} />
+          <Route path="/analyze" element={<KeyAnalyser />} />
           <Route path="/analyse" element={<KeyAnalyser />} />
           <Route path="/invite" element={<InviteAndTrack />} />
         </Routes>

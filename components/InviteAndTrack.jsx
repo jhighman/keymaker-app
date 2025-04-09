@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiCopy, FiCheck, FiLink, FiPlus, FiUser, FiMail, FiLoader } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLink, FiPlus, FiUser, FiMail, FiLoader, FiUsers, FiRefreshCw, FiX } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
-import { customerService } from '../services/api';
+import { customerService, initializeDatabase } from '../services/api';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -250,22 +250,30 @@ const InviteAndTrack = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch customers from API on component mount
+  // Initialize database in local mode
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const fetchedCustomers = await customerService.getCustomers();
-        setCustomers(fetchedCustomers);
-      } catch (err) {
-        console.error('Error fetching customers:', err);
-        setError('Failed to load customers. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+    console.debug('Initializing database in local mode for InviteAndTrack');
+    initializeDatabase('local');
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.debug('Fetching customers...');
+      const data = await customerService.getCustomers();
+      console.debug('Fetched customers:', data);
+      setCustomers(data || []);
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+      setError('Failed to load customers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch customers on mount
+  useEffect(() => {
     fetchCustomers();
   }, []);
 

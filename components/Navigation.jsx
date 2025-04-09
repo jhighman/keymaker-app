@@ -36,6 +36,7 @@ const StyledLink = styled(Link)`
 
 const Navigation = () => {
   const location = useLocation();
+  console.debug('Navigation: Current location:', location);
 
   return (
     <Nav>
@@ -43,7 +44,7 @@ const Navigation = () => {
         <StyledLink to="/" $active={location.pathname === '/'}>
           <FiKey /> Key Maker
         </StyledLink>
-        <StyledLink to="/analyse" $active={location.pathname === '/analyse'}>
+        <StyledLink to="/analyze" $active={location.pathname === '/analyze'}>
           <FiSearch /> Key Analyser
         </StyledLink>
         <StyledLink to="/invite" $active={location.pathname === '/invite'}>
