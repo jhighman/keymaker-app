@@ -65,7 +65,9 @@ The KeyMaker key is a 16-character string that encodes various configuration set
   - 011: 7 Years
   - 100: 10 Years
 
-## Example
+## Examples
+
+### Basic Example
 
 ```
 en1000000000000
@@ -78,6 +80,24 @@ Breaking down this example:
 - Steps: "0000" (No steps required)
 - Residence Timeline: "000" (N/A - no residence required)
 - Employment Timeline: "000" (N/A - no employment required)
+
+### Comprehensive Example
+
+```
+en-EPA-DTB-R5-E3-E-P-W
+```
+
+Breaking down this example using the current implementation format:
+- Language: "en" (English)
+- Personal Info: "EPA" (Email, Phone, Address all required)
+- Consents: "DTB" (Drug Test, Tax Forms, Biometric all required)
+- Residence History: "R5" (5 years of residence history required)
+- Employment History: "E3" (3 years of employment history required)
+- Education: "E" (Education verification required)
+- Professional License: "P" (Professional license verification required)
+- Signature: "W" (Wet signature required)
+
+This format is used in the KeyAnalyzer component and represents the evolved implementation of the key structure.
 
 ## Validation Rules
 

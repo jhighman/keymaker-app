@@ -54,7 +54,10 @@ The KeyMaker application consists of:
 - React-based web application
 - Styled-components for styling
 - Vite as the build tool
-- Components for key generation, analysis, and tracking
+- Three main components for the core use cases:
+  1. **KeyMaker**: Create and configure background check keys
+  2. **KeyAnalyzer**: Analyze and interpret existing keys
+  3. **InviteAndTrack**: Manage customers and track individual background checks
 
 ### Backend
 - Express.js API server

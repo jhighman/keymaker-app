@@ -270,6 +270,136 @@ class KeyMakerValidator:
 - Implement data validation
 - Regular backups
 
+### 3. Backend Implementation
+
+The KeyMaker application includes a full backend implementation with the following components:
+
+#### Express.js API Server
+```javascript
+import express from 'express';
+import cors from 'cors';
+import { config } from './config.js';
+import { connectToDatabase } from './database/connection.js';
+import keyRoutes from './routes/keys.js';
+import customerRoutes from './routes/customers.js';
+
+const app = express();
+const PORT = config.port || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Routes
+app.use('/api/keys', keyRoutes);
+app.use('/api/customers', customerRoutes);
+
+// Database connection
+connectToDatabase()
+  .then(() => {
+    console.log('Connected to database');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to connect to database:', err);
+    process.exit(1);
+  });
+```
+
+#### Repository Pattern
+The application uses the repository pattern to abstract database access:
+
+```javascript
+// keyRepository.js
+import { config } from '../config.js';
+import { Key } from '../models/Key.js';
+import { getDatabase } from '../database/connection.js';
+
+export const keyRepository = {
+  findAll: async () => {
+    if (config.database.mode === 'mongodb') {
+      return await Key.find();
+    } else {
+      const db = getDatabase();
+      return await db.findKeys();
+    }
+  },
+  
+  findById: async (id) => {
+    if (config.database.mode === 'mongodb') {
+      return await Key.findById(id);
+    } else {
+      const db = getDatabase();
+      return await db.findKeyById(id);
+    }
+  },
+  
+  // Additional methods...
+};
+```
+
+#### Database Abstraction
+The application supports both MongoDB and in-memory database:
+
+```javascript
+// connection.js
+import mongoose from 'mongoose';
+import { config } from '../config.js';
+import { createInMemoryDatabase } from './in-memory.js';
+
+let database = null;
+
+export const connectToDatabase = async () => {
+  if (config.database.mode === 'mongodb') {
+    await mongoose.connect(config.database.uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    console.log('Connected to MongoDB');
+  } else {
+    database = createInMemoryDatabase();
+    console.log('Using in-memory database');
+  }
+};
+
+export const getDatabase = () => {
+  if (config.database.mode === 'mongodb') {
+    throw new Error('Direct database access not available in MongoDB mode');
+  }
+  return database;
+};
+```
+
+#### Frontend API Service
+The frontend communicates with the backend through an API service:
+
+```javascript
+// api.js
+export const customerService = {
+  getCustomers: async () => {
+    if (IS_LOCAL_MODE) {
+      // In local mode, return all customers from localStorage
+      const customers = getLocalCustomers();
+      return customers;
+    }
+
+    // Production mode - use API
+    try {
+      const response = await fetch(`${DB_URL}/customers`);
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      return await response.json();
+    } catch (error) {
+      console.error('Error in getCustomers:', error);
+      throw error;
+    }
+  },
+  
+  // Additional methods...
+};
+```
+
 ### 3. Caching
 - Cache validation results
 - Cache parsed keys

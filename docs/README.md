@@ -8,13 +8,21 @@ The KeyMaker specification defines a compact, binary-based encoding system for r
 
 ## Table of Contents
 
-1. [Key Structure](./key-structure.md)
-2. [Language Codes](./language-codes.md)
-3. [Consent Options](./consent-options.md)
-4. [Verification Steps](./verification-steps.md)
-5. [Timeline Requirements](./timeline-requirements.md)
-6. [Implementation Guide](./implementation-guide.md)
-7. [Examples](./examples.md)
+1. [Executive Overview](./executive-overview.md)
+2. [Key Structure](./key-structure.md)
+3. [Language Codes](./language-codes.md)
+4. [Consent Options](./consent-options.md)
+5. [Verification Steps](./verification-steps.md)
+6. [Timeline Requirements](./timeline-requirements.md)
+7. [Implementation Guide](./implementation-guide.md)
+8. [Examples](./examples.md)
+9. [Architecture](./architecture.md)
+10. [Components](./components.md)
+11. [Use Cases](./use-cases.md)
+12. [Future Requirements](./future-requirements.md)
+13. [Sequence Diagrams](./sequence-diagrams.md)
+14. [API Contract](./api-contract.md)
+15. [UI Mockups](./ui-mockups.md)
 
 ## Quick Reference
 
