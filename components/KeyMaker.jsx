@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader, FiSearch } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
 import { keyService, customerService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -156,7 +157,9 @@ const OutputField = styled.input.attrs({ spellCheck: 'false' })`
 
 const OutputContainer = styled.div`
   position: relative;
-  z-index: 2;
+  display: flex;
+  gap: ${props => props.theme.spacing.sm};
+  align-items: center;
 `;
 
 const CopyButton = styled.button`
@@ -180,6 +183,24 @@ const CopyButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+`;
+
+const AnalyzeButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+  background: ${props => props.theme.colors.secondary};
+  color: white;
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.md};
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.colors.secondaryDark};
   }
 `;
 
@@ -449,6 +470,7 @@ const KeyMaker = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [savedKeys, setSavedKeys] = useState([]);
+  const navigate = useNavigate();
 
   // Fetch saved keys on component mount
   useEffect(() => {
@@ -788,6 +810,26 @@ const KeyMaker = () => {
     }
   };
 
+  const handleAnalyze = (value, type = 'key') => {
+    let analysisValue = value;
+    
+    // If this is from a collection link, construct the full URL
+    if (type === 'collection') {
+      const endpoint = getSelectedEndpoint();
+      analysisValue = `${endpoint.url}/collect/${generatedKey}`;
+    } else if (type === 'customer') {
+      // For customer links, include the full URL
+      const endpoint = getSelectedEndpoint();
+      analysisValue = `${endpoint.url}/collect/${generatedKey}`;
+    } else if (type === 'individual') {
+      // For individual links, include the full URL with PUID
+      const endpoint = getSelectedEndpoint();
+      analysisValue = `${endpoint.url}/collect/${generatedKey}&puid=${value}`;
+    }
+
+    navigate(`/analyse?key=${encodeURIComponent(analysisValue)}`);
+  };
+
   return (
     <Container>
       <Header>
@@ -945,34 +987,25 @@ const KeyMaker = () => {
           <OutputContainer>
             <OutputField
               type="text"
-              value={generatedKey || ''}
+              value={generatedKey}
               readOnly
               onClick={(e) => e.target.select()}
               data-testid="generated-key-field"
-              style={{
-                WebkitTextFillColor: '#ffffff',
-                color: '#ffffff'
-              }}
             />
+            <AnalyzeButton onClick={() => handleAnalyze(generatedKey)}>
+              <FiSearch /> Analyze
+            </AnalyzeButton>
           </OutputContainer>
           <CopyButton onClick={handleCopyToClipboard}>
-            {copied ? (
-              <>
-                <FiCheck /> Copied!
-              </>
-            ) : (
-              <>
-                <FiCopy /> Copy Key
-              </>
-            )}
+            {copied ? 'Copied!' : 'Copy to Clipboard'}
           </CopyButton>
         </OutputCard>
 
         <CollectionLinkCard>
-          <CollectionLinkTitle>
+          <OutputTitle>
             <StepNumber>2</StepNumber>
             Collection Link
-          </CollectionLinkTitle>
+          </OutputTitle>
           <EndpointSelect
             value={selectedEndpoint}
             onChange={(e) => setSelectedEndpoint(e.target.value)}
@@ -986,21 +1019,19 @@ const KeyMaker = () => {
           <EndpointDescription>
             {getSelectedEndpoint()?.description}
           </EndpointDescription>
-          <OutputField
-            type="text"
-            value={generateCollectionLink()}
-            readOnly
-          />
+          <OutputContainer>
+            <OutputField
+              type="text"
+              value={generateCollectionLink()}
+              readOnly
+              onClick={(e) => e.target.select()}
+            />
+            <AnalyzeButton onClick={() => handleAnalyze(generatedKey, 'collection')}>
+              <FiSearch /> Analyze
+            </AnalyzeButton>
+          </OutputContainer>
           <CopyButton onClick={handleCopyCollectionLink}>
-            {copiedLink ? (
-              <>
-                <FiCheck /> Copied!
-              </>
-            ) : (
-              <>
-                <FiLink /> Copy Collection Link
-              </>
-            )}
+            {copiedLink ? 'Copied!' : 'Copy to Clipboard'}
           </CopyButton>
         </CollectionLinkCard>
 
@@ -1028,6 +1059,9 @@ const KeyMaker = () => {
                   <CopyButton onClick={() => handleCopyCustomerLink(customer.link)}>
                     <FiCopy /> Copy Link
                   </CopyButton>
+                  <AnalyzeButton onClick={() => handleAnalyze(customer.link, 'customer')}>
+                    <FiSearch /> Analyze
+                  </AnalyzeButton>
                   <DeleteButton onClick={() => handleDeleteCustomerLink(customer.id)}>
                     Delete
                   </DeleteButton>
@@ -1056,6 +1090,11 @@ const KeyMaker = () => {
                           >
                             <FiCopy /> Copy Individual Link
                           </CopyButton>
+                          <AnalyzeButton 
+                            onClick={() => handleAnalyze(getIndividualLink(customer.link, individual.id), 'individual')}
+                          >
+                            <FiSearch /> Analyze
+                          </AnalyzeButton>
                           <DeleteButton 
                             onClick={() => handleDeleteIndividual(customer.id, individual.id)}
                           >

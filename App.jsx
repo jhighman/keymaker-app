@@ -5,6 +5,7 @@ import { theme, GlobalStyle } from './theme';
 import Navigation from './components/Navigation';
 import KeyMaker from './components/KeyMaker';
 import InviteAndTrack from './components/InviteAndTrack';
+import KeyAnalyser from './components/KeyAnalyser';
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
         <Navigation />
         <Routes>
           <Route path="/" element={<KeyMaker />} />
+          <Route path="/analyse" element={<KeyAnalyser />} />
           <Route path="/invite" element={<InviteAndTrack />} />
         </Routes>
       </Router>

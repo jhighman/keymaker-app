@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FiKey, FiUsers } from 'react-icons/fi';
+import { FiKey, FiUsers, FiSearch } from 'react-icons/fi';
 import { Link, useLocation } from 'react-router-dom';
 
 const Nav = styled.nav`
@@ -42,6 +42,9 @@ const Navigation = () => {
       <NavContent>
         <StyledLink to="/" $active={location.pathname === '/'}>
           <FiKey /> Key Maker
+        </StyledLink>
+        <StyledLink to="/analyse" $active={location.pathname === '/analyse'}>
+          <FiSearch /> Key Analyser
         </StyledLink>
         <StyledLink to="/invite" $active={location.pathname === '/invite'}>
           <FiUsers /> Invite & Track
