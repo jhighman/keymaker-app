@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiSearch, FiLink, FiUser } from 'react-icons/fi';
+import { FiSearch, FiLink, FiUser, FiExternalLink } from 'react-icons/fi';
 import { useLocation } from 'react-router-dom';
 import endpoints from '../config/endpoints.json';
 import { customerService, initializeDatabase } from '../services/api';
@@ -90,6 +90,25 @@ const TableHeader = styled.th`
   color: white;
 `;
 
+const LaunchButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+  background: ${props => props.theme.colors.success};
+  color: white;
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.md};
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin-top: ${props => props.theme.spacing.sm};
+
+  &:hover {
+    background: ${props => props.theme.colors.successDark || '#218838'};
+  }
+`;
+
 const KeyAnalyser = () => {
   console.debug('KeyAnalyser component mounted');
   const [input, setInput] = useState('');
@@ -97,7 +116,6 @@ const KeyAnalyser = () => {
   const [customerName, setCustomerName] = useState(null);
   const location = useLocation();
 
-  // Initialize database in local mode
   useEffect(() => {
     console.debug('Initializing database in local mode for KeyAnalyser');
     initializeDatabase('local');
@@ -133,39 +151,37 @@ const KeyAnalyser = () => {
   const extractKeyFromUrl = (url) => {
     console.debug('Extracting key from URL:', url);
     try {
-      // Create URL object for proper parameter parsing
       let urlObj;
       try {
         urlObj = new URL(url);
       } catch {
-        // If URL parsing fails, treat as relative URL
-        urlObj = new URL(url, 'http://dummy.com');
+        urlObj = new URL(url, 'http://localhost');
       }
 
-      // Extract SPID if present
+      const key = urlObj.searchParams.get('key');
       const spid = urlObj.searchParams.get('spid');
-      console.debug('Extracted SPID:', spid);
+      const puid = urlObj.searchParams.get('puid');
 
-      // Handle full URLs with /collect/ path
-      const urlMatch = url.match(/\/collect\/([\w-]+)/);
-      if (urlMatch) {
-        console.debug('Found key in URL path:', urlMatch[1]);
-        return { key: urlMatch[1], spid };
+      console.debug('Extracted parameters:', { key, spid, puid });
+
+      if (key) {
+        return { 
+          key, 
+          spid, 
+          individualId: puid 
+        };
       }
 
-      // Handle query parameter style URLs
-      const queryMatch = url.match(/[?&]key=([\w-]+)/);
-      if (queryMatch) {
-        console.debug('Found key in query params:', queryMatch[1]);
-        return { key: queryMatch[1], spid };
+      if (url.match(/^[a-z]{2}-[EPA]*-[DTBN]*-[NR][0-5N]-[EN][0-5N]*-[EN]-[PN]-[WE]$/)) {
+        console.debug('Input matches key format directly:', url);
+        return { key: url, spid: null, individualId: null };
       }
 
-      // If no matches, assume the input is the key itself
-      console.debug('Using input as key:', url);
-      return { key: url, spid: null };
+      console.debug('No valid key found in URL');
+      return { key: null, spid, individualId: puid };
     } catch (error) {
       console.error('Error extracting key from URL:', error);
-      return { key: url, spid: null };
+      return { key: url, spid: null, individualId: null };
     }
   };
 
@@ -184,6 +200,8 @@ const KeyAnalyser = () => {
   };
 
   const analyseKey = (key) => {
+    if (!key) return null;
+    
     const parts = key.split('-');
     if (parts.length !== 8) return null;
 
@@ -229,7 +247,6 @@ const KeyAnalyser = () => {
     console.debug('analyseInput called with:', value);
     const inputValue = value.trim();
     
-    // Initialize analysis object
     let analysisResult = {
       inputType: 'key',
       environment: null,
@@ -241,35 +258,26 @@ const KeyAnalyser = () => {
       keyAnalysis: null
     };
 
-    console.debug('Processing input value:', inputValue);
-
-    // Determine if input is a URL
-    if (inputValue.includes('http') || inputValue.includes('/collect/')) {
+    if (inputValue.includes('http')) {
       analysisResult.inputType = 'url';
       analysisResult.environment = getEnvironmentFromUrl(inputValue);
-      console.debug('URL detected, environment:', analysisResult.environment);
-      
-      // Check for individual ID
-      if (inputValue.includes('puid=')) {
-        analysisResult.inputType = 'individual';
-        analysisResult.individualId = inputValue.split('puid=')[1].split('&')[0];
-        console.debug('Individual ID found:', analysisResult.individualId);
-      }
     }
 
-    // Extract key and SPID
-    const { key, spid } = extractKeyFromUrl(inputValue);
-    console.debug('Extracted key data:', { key, spid });
+    const { key, spid, individualId } = extractKeyFromUrl(inputValue);
     analysisResult.key = key;
     analysisResult.spid = spid;
+    analysisResult.individualId = individualId;
+
+    if (individualId) {
+      analysisResult.inputType = 'individual';
+    } else if (spid && analysisResult.inputType === 'url') {
+      analysisResult.inputType = 'customer';
+    }
 
     if (spid) {
-      // Fetch customer name if SPID is present
       try {
         console.debug('Attempting to fetch customer details for SPID:', spid);
         const customer = await customerService.getCustomer(spid);
-        console.debug('Customer lookup result:', customer);
-        
         if (customer?.name) {
           analysisResult.customerName = customer.name;
           analysisResult.customerLookupStatus = 'found';
@@ -282,15 +290,18 @@ const KeyAnalyser = () => {
       }
     }
 
-    console.debug('Final analysis result:', analysisResult);
-
-    // Analyse the key
     analysisResult.keyAnalysis = analyseKey(key);
     setAnalysis(analysisResult);
   };
 
+  const handleLaunchUrl = (url) => {
+    if (url && url.includes('http')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const renderAnalysis = () => {
-    if (!analysis || !analysis.keyAnalysis) return null;
+    if (!analysis) return null;
 
     return (
       <>
@@ -314,6 +325,15 @@ const KeyAnalyser = () => {
                     <TableRow>
                       <TableCell>Description</TableCell>
                       <TableCell>{analysis.environment.description}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>URL</TableCell>
+                      <TableCell>
+                        {input}
+                        <LaunchButton onClick={() => handleLaunchUrl(input)}>
+                          <FiExternalLink /> Launch
+                        </LaunchButton>
+                      </TableCell>
                     </TableRow>
                   </>
                 )}
@@ -350,71 +370,87 @@ const KeyAnalyser = () => {
           </ResultSection>
         )}
 
-        <ResultSection>
-          <SectionTitle>
-            <FiSearch /> Key Analysis
-          </SectionTitle>
-          <ResultTable>
-            <tbody>
-              <TableRow>
-                <TableCell>Key</TableCell>
-                <TableCell>{analysis.key}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Language</TableCell>
-                <TableCell>{analysis.keyAnalysis.language.name} ({analysis.keyAnalysis.language.code})</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Personal Information</TableCell>
-                <TableCell>
-                  {[
-                    analysis.keyAnalysis.personalInfo.email && 'Email',
-                    analysis.keyAnalysis.personalInfo.phone && 'Phone',
-                    analysis.keyAnalysis.personalInfo.address && 'Address'
-                  ].filter(Boolean).join(', ')}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Consents Required</TableCell>
-                <TableCell>
-                  {analysis.keyAnalysis.consents.none ? 'None' : [
-                    analysis.keyAnalysis.consents.drugTest && 'Drug Test',
-                    analysis.keyAnalysis.consents.taxForms && 'Tax Forms',
-                    analysis.keyAnalysis.consents.biometric && 'Biometric'
-                  ].filter(Boolean).join(', ')}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Residence History</TableCell>
-                <TableCell>
-                  {analysis.keyAnalysis.residenceHistory.required
-                    ? `${analysis.keyAnalysis.residenceHistory.years} Years`
-                    : 'Not Required'}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Employment History</TableCell>
-                <TableCell>
-                  {analysis.keyAnalysis.employmentHistory.required
-                    ? `${analysis.keyAnalysis.employmentHistory.value} ${analysis.keyAnalysis.employmentHistory.type === 'employers' ? 'Employers' : 'Years'}`
-                    : 'Not Required'}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Education Verification</TableCell>
-                <TableCell>{analysis.keyAnalysis.education ? 'Required' : 'Not Required'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Professional License</TableCell>
-                <TableCell>{analysis.keyAnalysis.professionalLicense ? 'Required' : 'Not Required'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Signature Type</TableCell>
-                <TableCell>{analysis.keyAnalysis.signature}</TableCell>
-              </TableRow>
-            </tbody>
-          </ResultTable>
-        </ResultSection>
+        {analysis.keyAnalysis ? (
+          <ResultSection>
+            <SectionTitle>
+              <FiSearch /> Key Analysis
+            </SectionTitle>
+            <ResultTable>
+              <tbody>
+                <TableRow>
+                  <TableCell>Key</TableCell>
+                  <TableCell>{analysis.key}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Language</TableCell>
+                  <TableCell>{analysis.keyAnalysis.language.name} ({analysis.keyAnalysis.language.code})</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Personal Information</TableCell>
+                  <TableCell>
+                    {[
+                      analysis.keyAnalysis.personalInfo.email && 'Email',
+                      analysis.keyAnalysis.personalInfo.phone && 'Phone',
+                      analysis.keyAnalysis.personalInfo.address && 'Address'
+                    ].filter(Boolean).join(', ')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Consents Required</TableCell>
+                  <TableCell>
+                    {analysis.keyAnalysis.consents.none ? 'None' : [
+                      analysis.keyAnalysis.consents.drugTest && 'Drug Test',
+                      analysis.keyAnalysis.consents.taxForms && 'Tax Forms',
+                      analysis.keyAnalysis.consents.biometric && 'Biometric'
+                    ].filter(Boolean).join(', ')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Residence History</TableCell>
+                  <TableCell>
+                    {analysis.keyAnalysis.residenceHistory.required
+                      ? `${analysis.keyAnalysis.residenceHistory.years} Years`
+                      : 'Not Required'}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Employment History</TableCell>
+                  <TableCell>
+                    {analysis.keyAnalysis.employmentHistory.required
+                      ? `${analysis.keyAnalysis.employmentHistory.value} ${analysis.keyAnalysis.employmentHistory.type === 'employers' ? 'Employers' : 'Years'}`
+                      : 'Not Required'}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Education Verification</TableCell>
+                  <TableCell>{analysis.keyAnalysis.education ? 'Required' : 'Not Required'}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Professional License</TableCell>
+                  <TableCell>{analysis.keyAnalysis.professionalLicense ? 'Required' : 'Not Required'}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Signature Type</TableCell>
+                  <TableCell>{analysis.keyAnalysis.signature}</TableCell>
+                </TableRow>
+              </tbody>
+            </ResultTable>
+          </ResultSection>
+        ) : (
+          <ResultSection>
+            <SectionTitle>
+              <FiSearch /> Analysis Result
+            </SectionTitle>
+            <ResultTable>
+              <tbody>
+                <TableRow>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Invalid key format</TableCell>
+                </TableRow>
+              </tbody>
+            </ResultTable>
+          </ResultSection>
+        )}
       </>
     );
   };
@@ -442,4 +478,4 @@ const KeyAnalyser = () => {
   );
 };
 
-export default KeyAnalyser; 
+export default KeyAnalyser;

@@ -48,7 +48,7 @@ const Navigation = () => {
           <FiSearch /> Key Analyser
         </StyledLink>
         <StyledLink to="/invite" $active={location.pathname === '/invite'}>
-          <FiUsers /> Invite & Track
+          <FiUsers /> Invite
         </StyledLink>
       </NavContent>
     </Nav>

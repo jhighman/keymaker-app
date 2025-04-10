@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader, FiSearch } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLink, FiPlus, FiTrash2, FiUser, FiLoader, FiSearch, FiExternalLink } from 'react-icons/fi';
 import endpoints from '../config/endpoints.json';
 import { keyService, customerService, initializeDatabase } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
+// Styled Components
 const Container = styled.div`
   padding: 20px;
   max-width: 1200px;
@@ -106,7 +107,26 @@ const RadioGroup = styled.div`
   flex-direction: column;
   gap: ${props => props.theme.spacing.sm};
   margin-top: ${props => props.theme.spacing.md};
-  margin-left: ${props => props.theme.spacing.xl};
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  cursor: pointer;
+  padding: ${props => props.theme.spacing.sm};
+  border-radius: ${props => props.theme.borderRadius.md};
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${props => props.theme.colors.background};
+  }
+`;
+
+const Radio = styled.input`
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
 `;
 
 const OutputCard = styled(Card)`
@@ -161,8 +181,14 @@ const OutputContainer = styled.div`
   align-items: center;
 `;
 
-const CopyButton = styled.button`
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: ${props => props.theme.spacing.sm};
   width: 100%;
+`;
+
+const CopyButton = styled.button`
+  flex: 1;
   padding: ${props => props.theme.spacing.md};
   background: white;
   border: none;
@@ -178,6 +204,31 @@ const CopyButton = styled.button`
 
   &:hover {
     transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const LaunchButton = styled.button`
+  flex: 1;
+  padding: ${props => props.theme.spacing.md};
+  background: ${props => props.theme.colors.success};
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.md};
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${props => props.theme.spacing.sm};
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: ${props => props.theme.colors.successDark || '#218838'};
   }
 
   &:active {
@@ -203,46 +254,8 @@ const AnalyzeButton = styled.button`
   }
 `;
 
-const timelineOptions = [
-  { value: 'N', label: 'Not Required' },
-  { value: 'R1', label: '1 Year' },
-  { value: 'R3', label: '3 Years' },
-  { value: 'R5', label: '5 Years' }
-];
-
-const employmentOptions = [
-  { value: 'N', label: 'Not Required' },
-  { value: 'E1', label: '1 Year' },
-  { value: 'E3', label: '3 Years' },
-  { value: 'E5', label: '5 Years' },
-  { value: 'EN1', label: '1 Employer' },
-  { value: 'EN2', label: '2 Employers' },
-  { value: 'EN3', label: '3 Employers' }
-];
-
-const languages = [
-  { code: 'en', label: 'English' },
-  { code: 'es', label: 'Spanish' },
-  { code: 'fr', label: 'French' }
-];
-
 const CollectionLinkCard = styled(OutputCard)`
   background: ${props => props.theme.colors.secondary};
-`;
-
-const CollectionLinkTitle = styled(OutputTitle)`
-  color: white;
-`;
-
-const EndpointSelect = styled(Select)`
-  margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const EndpointDescription = styled.p`
-  color: white;
-  opacity: 0.8;
-  font-size: 0.9rem;
-  margin-bottom: ${props => props.theme.spacing.lg};
 `;
 
 const CustomerLinkCard = styled(Card)`
@@ -459,34 +472,46 @@ const EndpointSection = styled.div`
   margin-bottom: ${props => props.theme.spacing.lg};
 `;
 
-const CollectionLinkDisplay = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${props => props.theme.spacing.sm};
-  padding: ${props => props.theme.spacing.lg};
-  background: ${props => props.theme.colors.secondaryDark};
-  border-radius: ${props => props.theme.borderRadius.md};
-  font-family: ${props => props.theme.fonts.mono};
-  word-break: break-all;
-  color: white;
-`;
-
-const DatabaseEnvironmentSelect = styled(Select)`
+const EndpointSelect = styled(Select)`
   margin-bottom: ${props => props.theme.spacing.lg};
-  background-color: ${props => props.theme.colors.warning};
-  color: white;
-  border: none;
-
-  &:focus {
-    box-shadow: 0 0 0 2px ${props => props.theme.colors.warning}40;
-  }
 `;
 
+const EndpointDescription = styled.p`
+  color: white;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  margin-bottom: ${props => props.theme.spacing.lg};
+`;
+
+// Component options
+const timelineOptions = [
+  { value: 'N', label: 'Not Required' },
+  { value: 'R1', label: '1 Year' },
+  { value: 'R3', label: '3 Years' },
+  { value: 'R5', label: '5 Years' }
+];
+
+const employmentOptions = [
+  { value: 'N', label: 'Not Required' },
+  { value: 'E1', label: '1 Year' },
+  { value: 'E3', label: '3 Years' },
+  { value: 'E5', label: '5 Years' },
+  { value: 'EN1', label: '1 Employer' },
+  { value: 'EN2', label: '2 Employers' },
+  { value: 'EN3', label: '3 Employers' }
+];
+
+const languages = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' }
+];
+
+// KeyMaker Component
 const KeyMaker = () => {
   const [databaseEnvironment, setDatabaseEnvironment] = useState('local');
   const [selectedEndpoint, setSelectedEndpoint] = useState(endpoints.endpoints[0]);
   
-  // Initialize savedKeys from localStorage
   const [savedKeys, setSavedKeys] = useState(() => {
     try {
       const stored = localStorage.getItem('keymaker_customers');
@@ -497,7 +522,6 @@ const KeyMaker = () => {
     }
   });
 
-  // Keep localStorage in sync with savedKeys
   useEffect(() => {
     try {
       localStorage.setItem('keymaker_customers', JSON.stringify(savedKeys));
@@ -532,7 +556,6 @@ const KeyMaker = () => {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [customerLinks, setCustomerLinks] = useState([]);
-  
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -542,10 +565,10 @@ const KeyMaker = () => {
       if (personalInfo.email) facet += 'E';
       if (personalInfo.phone) facet += 'P';
       if (personalInfo.address) facet += 'A';
-      return facet || 'E'; // Default to E if nothing selected
+      return facet || 'E';
     } catch (error) {
       console.error('Error generating personal info facet:', error);
-      return 'E'; // Default to E on error
+      return 'E';
     }
   }, [personalInfo]);
 
@@ -559,7 +582,7 @@ const KeyMaker = () => {
       return facet;
     } catch (error) {
       console.error('Error generating consents facet:', error);
-      return 'N'; // Default to N on error
+      return 'N';
     }
   }, [consents]);
 
@@ -567,8 +590,6 @@ const KeyMaker = () => {
     console.log('Generating new key...');
     const personalInfoFacet = generatePersonalInfoFacet();
     const consentsFacet = generateConsentsFacet();
-    console.log('Facets:', { personalInfoFacet, consentsFacet });
-    
     const key = [
       language,
       personalInfoFacet,
@@ -579,104 +600,73 @@ const KeyMaker = () => {
       professionalLicense ? 'P' : 'N',
       signature
     ].join('-');
-    console.log('Generated key:', key);
     return key;
   }, [language, generatePersonalInfoFacet, generateConsentsFacet, residenceHistory, employmentHistory, education, professionalLicense, signature]);
 
+  const generateCollectionLink = useCallback(() => {
+    const endpoint = selectedEndpoint;
+    if (!endpoint?.url) {
+      console.error('No valid endpoint URL found');
+      return '';
+    }
+    const key = generateKey();
+    const baseUrl = endpoint.url.endsWith('/') ? `${endpoint.url}?` : `${endpoint.url}/?`;
+    return `${baseUrl}key=${key}`;
+  }, [selectedEndpoint, generateKey]);
+
   useEffect(() => {
-    console.log('State changed, updating generated key...');
-    console.log('Current state:', {
-      language,
-      personalInfo,
-      consents,
-      residenceHistory,
-      employmentHistory,
-      education,
-      professionalLicense,
-      signature
-    });
     const newKey = generateKey();
-    console.log('Setting new generated key:', newKey);
     setGeneratedKey(newKey);
-    console.log('Current generatedKey state after setting:', generatedKey);
-    setTimeout(() => {
-      console.log('GeneratedKey state after update:', generatedKey);
-    }, 0);
   }, [language, personalInfo, consents, residenceHistory, employmentHistory, education, professionalLicense, signature, generateKey]);
 
   const handleDatabaseEnvironmentChange = (event) => {
-    const newEnvironment = event.target.value;
-    console.debug('Changing database environment to:', newEnvironment);
-    setDatabaseEnvironment(newEnvironment);
+    setDatabaseEnvironment(event.target.value);
   };
 
   const handleEndpointChange = (event) => {
     const endpoint = endpoints.endpoints.find(e => e.id === event.target.value);
-    console.debug('Changing collection endpoint to:', endpoint);
     setSelectedEndpoint(endpoint);
   };
 
-  const getSelectedEndpoint = useCallback(() => {
-    return selectedEndpoint;
-  }, [selectedEndpoint]);
-
-  const generateCollectionLink = useCallback(() => {
-    const endpoint = getSelectedEndpoint();
-    const key = generateKey();
-    return `${endpoint.url}?key=${key}`;
-  }, [getSelectedEndpoint, generateKey]);
-
   const handleCopyToClipboard = async () => {
-    console.log('Copying key to clipboard:', generatedKey);
     try {
       await navigator.clipboard.writeText(generatedKey);
-      console.log('Successfully copied key to clipboard');
       setCopied(true);
-      setTimeout(() => {
-        console.log('Resetting copied state');
-        setCopied(false);
-      }, 2000);
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy key to clipboard:', error);
     }
   };
 
   const handleCopyCollectionLink = async () => {
-    const collectionLink = `${selectedEndpoint.url}/collect/${generatedKey}`;
-    console.debug('Copying collection link to clipboard:', collectionLink);
+    const collectionLink = generateCollectionLink();
     try {
       await navigator.clipboard.writeText(collectionLink);
-      console.debug('Successfully copied collection link to clipboard');
       setCopiedLink(true);
-      setTimeout(() => {
-        console.debug('Resetting linkCopied state');
-        setCopiedLink(false);
-      }, 2000);
+      setTimeout(() => setCopiedLink(false), 2000);
     } catch (error) {
       console.error('Failed to copy collection link to clipboard:', error);
     }
   };
 
   const handlePersonalInfoChange = (name) => {
-    setPersonalInfo(prev => {
-      const newState = {
-        ...prev,
-        [name]: !prev[name]
-      };
-      console.log('Personal info updated:', newState);
-      return newState;
-    });
+    setPersonalInfo(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
   };
 
   const handleConsentChange = (name) => {
-    setConsents(prev => {
-      const newState = {
-        ...prev,
-        [name]: !prev[name]
-      };
-      console.log('Consents updated:', newState);
-      return newState;
-    });
+    setConsents(prev => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  };
+
+  const handleLaunchUrl = (url) => {
+    if (url && url.includes('http')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleSaveCustomerLink = async () => {
@@ -685,11 +675,15 @@ const KeyMaker = () => {
       return;
     }
 
+    const baseUrl = selectedEndpoint.url.endsWith('/') 
+      ? `${selectedEndpoint.url}?` 
+      : `${selectedEndpoint.url}/?`;
+    
     const newCustomer = {
       id: Date.now().toString(),
       name: customerName,
       spid: customerSpid,
-      link: `${selectedEndpoint.url}/collect/${generatedKey}?spid=${encodeURIComponent(customerSpid)}`,
+      link: `${baseUrl}key=${generatedKey}&spid=${encodeURIComponent(customerSpid)}`,
       individuals: []
     };
 
@@ -698,20 +692,9 @@ const KeyMaker = () => {
       setError(null);
       
       if (databaseEnvironment === 'production') {
-        // Only try API calls in production mode
-        try {
-          console.debug('Creating customer via API:', newCustomer);
-          const savedCustomer = await customerService.createCustomer(newCustomer);
-          console.debug('Customer created:', savedCustomer);
-          setSavedKeys(prev => [...(prev || []), savedCustomer]);
-        } catch (apiError) {
-          console.error('API create customer failed:', apiError);
-          setError('Failed to save customer to production database. Please try again.');
-          return;
-        }
+        const savedCustomer = await customerService.createCustomer(newCustomer);
+        setSavedKeys(prev => [...(prev || []), savedCustomer]);
       } else {
-        // In local mode, just use local state
-        console.debug('Local mode: Saving customer to local state:', newCustomer);
         setSavedKeys(prev => [...(prev || []), newCustomer]);
       }
 
@@ -732,19 +715,10 @@ const KeyMaker = () => {
       setError(null);
       
       if (databaseEnvironment === 'production') {
-        // Only try API calls in production mode
-        try {
-          await customerService.deleteCustomer(id);
-        } catch (apiError) {
-          console.error('API delete failed:', apiError);
-          setError('Failed to delete customer from production database. Please try again.');
-          return;
-        }
+        await customerService.deleteCustomer(id);
       }
       
-      // Always update local state
       setSavedKeys(prev => prev.filter(customer => customer.id !== id));
-      
     } catch (err) {
       console.error('Error in handleDeleteCustomerLink:', err);
       setError('Failed to delete customer. Please try again.');
@@ -767,19 +741,11 @@ const KeyMaker = () => {
       };
       
       if (databaseEnvironment === 'production') {
-        // Only try API calls in production mode
-        try {
-          const updatedCustomer = await customerService.addIndividual(customerId, individualData);
-          setSavedKeys(prev => prev.map(customer =>
-            customer.id === customerId ? updatedCustomer : customer
-          ));
-        } catch (apiError) {
-          console.error('API add individual failed:', apiError);
-          setError('Failed to add individual to production database. Please try again.');
-          return;
-        }
+        const updatedCustomer = await customerService.addIndividual(customerId, individualData);
+        setSavedKeys(prev => prev.map(customer =>
+          customer.id === customerId ? updatedCustomer : customer
+        ));
       } else {
-        // In local mode, just update local state
         setSavedKeys(prev => prev.map(customer => {
           if (customer.id === customerId) {
             return {
@@ -806,17 +772,9 @@ const KeyMaker = () => {
       setError(null);
       
       if (databaseEnvironment === 'production') {
-        // Only try API calls in production mode
-        try {
-          await customerService.removeIndividual(customerId, individualId);
-        } catch (apiError) {
-          console.error('API delete individual failed:', apiError);
-          setError('Failed to delete individual from production database. Please try again.');
-          return;
-        }
+        await customerService.removeIndividual(customerId, individualId);
       }
       
-      // Always update local state
       setSavedKeys(prev => prev.map(customer => {
         if (customer.id === customerId) {
           return {
@@ -826,7 +784,6 @@ const KeyMaker = () => {
         }
         return customer;
       }));
-      
     } catch (err) {
       console.error('Error in handleDeleteIndividual:', err);
       setError('Failed to delete individual. Please try again.');
@@ -836,7 +793,6 @@ const KeyMaker = () => {
   };
 
   const getIndividualLink = (customerLink, individualId) => {
-    // Add puid to the existing URL while preserving the structure
     const url = new URL(customerLink);
     url.searchParams.append('puid', individualId);
     return url.toString();
@@ -846,7 +802,6 @@ const KeyMaker = () => {
     const link = getIndividualLink(customerLink, individualId);
     try {
       await navigator.clipboard.writeText(link);
-      console.log('Individual link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy individual link:', error);
     }
@@ -855,30 +810,16 @@ const KeyMaker = () => {
   const handleAnalyze = (value, type = 'key') => {
     let analysisValue;
     
-    console.debug('handleAnalyze called with:', { value, type });
-    console.debug('Current endpoint:', selectedEndpoint);
-    console.debug('Current generated key:', generatedKey);
-    
     if (type === 'collection') {
-      // For collection links, construct the full URL with /collect/ path
-      analysisValue = `${selectedEndpoint.url}/collect/${generatedKey}`;
-      console.debug('Collection link analysis value:', analysisValue);
+      analysisValue = generateCollectionLink();
     } else if (type === 'customer' || type === 'individual') {
-      // For customer and individual links, use the full URL as is
       analysisValue = value;
-      console.debug('Customer/Individual link analysis value:', analysisValue);
     } else {
-      // For raw key analysis
-      analysisValue = `${selectedEndpoint.url}/collect/${value}`;
-      console.debug('Raw key analysis value:', analysisValue);
+      const baseUrl = selectedEndpoint.url.endsWith('/') 
+        ? `${selectedEndpoint.url}?` 
+        : `${selectedEndpoint.url}/?`;
+      analysisValue = `${baseUrl}key=${value}`;
     }
-
-    console.debug('Final analysis value:', analysisValue);
-    console.debug('Navigating to analyze with state:', {
-      url: analysisValue,
-      type,
-      endpoint: selectedEndpoint
-    });
 
     navigate('/analyze', {
       state: {
@@ -893,9 +834,7 @@ const KeyMaker = () => {
     try {
       await navigator.clipboard.writeText(link);
       setCopiedLink(true);
-      setTimeout(() => {
-        setCopiedLink(false);
-      }, 2000);
+      setTimeout(() => setCopiedLink(false), 2000);
     } catch (error) {
       console.error('Failed to copy customer link:', error);
     }
@@ -909,14 +848,29 @@ const KeyMaker = () => {
       </Header>
 
       <Card style={{ marginBottom: '2rem' }}>
-        <CardTitle>Database Environment</CardTitle>
-        <DatabaseEnvironmentSelect 
-          value={databaseEnvironment} 
-          onChange={handleDatabaseEnvironmentChange}
-        >
-          <option value="local">Local Database</option>
-          <option value="production">Production Database</option>
-        </DatabaseEnvironmentSelect>
+        <CardTitle>
+          Database Environment: {databaseEnvironment === 'local' ? 'Local' : 'Production'}
+        </CardTitle>
+        <RadioGroup>
+          <RadioLabel>
+            <Radio
+              type="radio"
+              value="local"
+              checked={databaseEnvironment === 'local'}
+              onChange={handleDatabaseEnvironmentChange}
+            />
+            Local Database
+          </RadioLabel>
+          <RadioLabel>
+            <Radio
+              type="radio"
+              value="production"
+              checked={databaseEnvironment === 'production'}
+              onChange={handleDatabaseEnvironmentChange}
+            />
+            Production Database
+          </RadioLabel>
+        </RadioGroup>
       </Card>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -1078,9 +1032,14 @@ const KeyMaker = () => {
               <FiSearch /> Analyze
             </AnalyzeButton>
           </OutputContainer>
-          <CopyButton onClick={handleCopyToClipboard}>
-            {copied ? 'Copied!' : 'Copy to Clipboard'}
-          </CopyButton>
+          <ButtonGroup>
+            <CopyButton onClick={handleCopyToClipboard}>
+              {copied ? 'Copied!' : 'Copy to Clipboard'}
+            </CopyButton>
+            <LaunchButton onClick={() => handleLaunchUrl(`${selectedEndpoint.url}?key=${generatedKey}`)}>
+              <FiExternalLink /> Launch
+            </LaunchButton>
+          </ButtonGroup>
         </OutputCard>
 
         <CollectionLinkCard>
@@ -1101,22 +1060,22 @@ const KeyMaker = () => {
           <OutputContainer>
             <OutputField
               type="text"
-              value={`${selectedEndpoint.url}/collect/${generatedKey}`}
+              value={generateCollectionLink()}
               readOnly
               onClick={(e) => e.target.select()}
             />
-            <AnalyzeButton onClick={() => {
-              console.debug('Collection link analyze button clicked');
-              console.debug('Current generated key:', generatedKey);
-              console.debug('Current endpoint:', selectedEndpoint);
-              handleAnalyze(`${selectedEndpoint.url}/collect/${generatedKey}`, 'collection');
-            }}>
+            <AnalyzeButton onClick={() => handleAnalyze(generateCollectionLink(), 'collection')}>
               <FiSearch /> Analyze
             </AnalyzeButton>
           </OutputContainer>
-          <CopyButton onClick={handleCopyCollectionLink}>
-            <FiCopy /> {copiedLink ? 'Copied!' : 'Copy Link'}
-          </CopyButton>
+          <ButtonGroup>
+            <CopyButton onClick={handleCopyCollectionLink}>
+              <FiCopy /> {copiedLink ? 'Copied!' : 'Copy Link'}
+            </CopyButton>
+            <LaunchButton onClick={() => handleLaunchUrl(generateCollectionLink())}>
+              <FiExternalLink /> Launch
+            </LaunchButton>
+          </ButtonGroup>
         </CollectionLinkCard>
 
         <CustomerLinkCard>
@@ -1152,9 +1111,14 @@ const KeyMaker = () => {
                 </CustomerInfoDisplay>
                 <CustomerLink>{customer.link}</CustomerLink>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <CopyButton onClick={() => handleCopyCustomerLink(customer.link)}>
-                    <FiCopy /> Copy Link
-                  </CopyButton>
+                  <ButtonGroup>
+                    <CopyButton onClick={() => handleCopyCustomerLink(customer.link)}>
+                      <FiCopy /> Copy Link
+                    </CopyButton>
+                    <LaunchButton onClick={() => handleLaunchUrl(customer.link)}>
+                      <FiExternalLink /> Launch
+                    </LaunchButton>
+                  </ButtonGroup>
                   <AnalyzeButton onClick={() => handleAnalyze(customer.link, 'customer')}>
                     <FiSearch /> Analyze
                   </AnalyzeButton>
@@ -1181,11 +1145,18 @@ const KeyMaker = () => {
                       <IndividualItem key={individual.id}>
                         <IndividualId>{individual.id}</IndividualId>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <CopyButton 
-                            onClick={() => handleCopyIndividualLink(customer.link, individual.id)}
-                          >
-                            <FiCopy /> Copy Individual Link
-                          </CopyButton>
+                          <ButtonGroup>
+                            <CopyButton 
+                              onClick={() => handleCopyIndividualLink(customer.link, individual.id)}
+                            >
+                              <FiCopy /> Copy Individual Link
+                            </CopyButton>
+                            <LaunchButton 
+                              onClick={() => handleLaunchUrl(getIndividualLink(customer.link, individual.id))}
+                            >
+                              <FiExternalLink /> Launch
+                            </LaunchButton>
+                          </ButtonGroup>
                           <AnalyzeButton 
                             onClick={() => handleAnalyze(getIndividualLink(customer.link, individual.id), 'individual')}
                           >
@@ -1210,4 +1181,4 @@ const KeyMaker = () => {
   );
 };
 
-export default KeyMaker; 
+export default KeyMaker;

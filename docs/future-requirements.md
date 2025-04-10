@@ -1,9 +1,9 @@
 # Future Requirements and Design
-
+## Invite Enhancement
 ## Invite and Track Enhancement
 
 ### Overview
-
+The Invite functionality will be enhanced to support multiple communication channels, improved status tracking, and integration with the Trua Collect application. This document outlines the requirements, data model, use cases, and design artifacts for this enhancement.
 The Invite and Track functionality will be enhanced to support multiple communication channels, improved status tracking, and integration with the Trua Collect application. This document outlines the requirements, data model, use cases, and design artifacts for this enhancement.
 
 ## Requirements
@@ -257,11 +257,11 @@ const customerSchema = new mongoose.Schema({
 ## Design Artifacts
 
 ### 1. Component Design
-
+#### Enhanced Invite Component
 #### Enhanced InviteAndTrack Component
 
 ```jsx
-const InviteAndTrack = () => {
+const Invite = () => {
   // State for customers, selected customer, etc.
   
   // New state for communication channels and templates
@@ -459,7 +459,7 @@ export const truaCollectService = {
 4. Add visualization for tracking progress
 
 ## Conclusion
-
+The enhanced Invite functionality will provide a comprehensive solution for managing the background check collection process. By supporting multiple communication channels, improved status tracking, and integration with Trua Collect, the system will streamline the process for both administrators and individuals.
 The enhanced Invite and Track functionality will provide a comprehensive solution for managing the background check collection process. By supporting multiple communication channels, improved status tracking, and integration with Trua Collect, the system will streamline the process for both administrators and individuals.
 
 The implementation will follow a phased approach, starting with the enhanced data model and gradually adding more functionality. This approach will allow for incremental testing and validation of each component before moving on to the next phase.

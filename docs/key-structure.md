@@ -97,7 +97,7 @@ Breaking down this example using the current implementation format:
 - Professional License: "P" (Professional license verification required)
 - Signature: "W" (Wet signature required)
 
-This format is used in the KeyAnalyzer component and represents the evolved implementation of the key structure.
+This format is used in the KeyAnalyser component and represents the evolved implementation of the key structure.
 
 ## Validation Rules
 

@@ -1,5 +1,5 @@
 # Sequence Diagrams
-
+## Invite Process Flow
 ## Invite and Track Process Flow
 
 The following sequence diagrams illustrate the interaction between the KeyMaker application, Trua Collect, and the individual during the invitation and collection process.
@@ -9,7 +9,7 @@ The following sequence diagrams illustrate the interaction between the KeyMaker 
 ```mermaid
 sequenceDiagram
     participant Admin as Administrator
-    participant KeyMaker as KeyMaker (Invite & Track)
+    participant KeyMaker as KeyMaker (Invite)
     participant TruaCollect as Trua Collect
     participant Individual as Individual
 
@@ -34,7 +34,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Admin as Administrator
-    participant KeyMaker as KeyMaker (Invite & Track)
+    participant KeyMaker as KeyMaker (Invite)
     participant Individual as Individual
 
     Admin->>KeyMaker: Select Individual

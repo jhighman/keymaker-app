@@ -19,8 +19,8 @@ The KeyMaker application follows a modern full-stack architecture with the follo
 keymaker-app/
 ├── components/        # React components
 │   ├── KeyMaker.jsx   # Key creation component
-│   ├── KeyAnalyzer.jsx # Key analysis component
-│   ├── InviteAndTrack.jsx # Customer and individual tracking
+│   ├── KeyAnalyser.jsx # Key analysis component
+│   ├── Invite.jsx # Customer and individual tracking
 │   └── Navigation.jsx # Navigation component
 ├── services/          # Frontend services
 │   └── api.js         # API service for backend communication
@@ -47,9 +47,11 @@ keymaker-app/
 - The application uses a multi-page component architecture with routing
 - Three main components implement the core use cases:
   - `KeyMaker`: Key creation and management
-  - `KeyAnalyzer`: Key analysis and interpretation
-  - `InviteAndTrack`: Customer and individual tracking
+  - `KeyAnalyser`: Key analysis and interpretation
+  - `Invite`: Customer and individual tracking with invitation management
+- Each component is designed to be self-contained but can interact with others
 - Styling is handled through styled-components with a global theme
+- Modal interfaces for complex interactions
 
 ### 2. State Management
 - React's built-in state management (useState, useEffect) is used
@@ -75,7 +77,7 @@ keymaker-app/
 - Responsive design principles
 - Consistent design language across components
 
-### 4. Build System
+### 6. Build System
 - Vite for fast development and optimized production builds
 - PostCSS for CSS processing
 - Modern JavaScript features support

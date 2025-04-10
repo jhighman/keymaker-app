@@ -6,7 +6,7 @@ The KeyMaker application implements three primary use cases that work together t
 
 1. **Key Maker**: Create and configure background check keys
 2. **Key Analyzer**: Analyze and interpret existing keys
-3. **Invite and Track**: Manage customers and track individual background checks
+3. **Invite**: Manage customers and track individual background checks
 
 ## 1. Key Maker
 
@@ -54,7 +54,7 @@ The Key Analyzer use case allows users to analyze and interpret existing keys to
 
 ### Implementation
 
-The Key Analyzer is implemented in the `KeyAnalyzer.jsx` component, which provides a user interface for analyzing keys. The component uses the following structure:
+The Key Analyzer is implemented in the `KeyAnalyser.jsx` component, which provides a user interface for analyzing keys. The component uses the following structure:
 
 - Input field for entering a key
 - Validation of key format
@@ -67,42 +67,58 @@ The Key Analyzer is implemented in the `KeyAnalyzer.jsx` component, which provid
 2. Component validates the key format
 3. If valid, component parses the key and displays its requirements
 4. If invalid, component shows an error message
-
+## 3. Invite
 ## 3. Invite and Track
-
+The Invite use case allows users to manage customers, send invitations for background checks, and track completion status.
 The Invite and Track use case allows users to manage customers, send invitations for background checks, and track completion status.
 
 ### Features
 
 - **Customer Management**: Add and view customers
 - **Individual Management**: Add and remove individuals for each customer
-- **Invitation Links**: Generate unique links for each individual
-- **Status Tracking**: Track completion status for each individual
+- **Contact Information**: Store email, phone, and preferred communication channel
+- **Communication Channels**: Support for both email and SMS invitations
+- **Invitation Management**: Send, resend, and track invitations
+- **Status Tracking**: Track completion status with multiple states (pending, invited, started, in_progress, completed, expired, failed)
+- **Link Generation**: Create unique links for each individual
 
 ### Implementation
-
+The Invite use case is implemented in the `Invite.jsx` component, which provides a user interface for managing customers and individuals. The component uses the following structure:
 The Invite and Track use case is implemented in the `InviteAndTrack.jsx` component, which provides a user interface for managing customers and individuals. The component uses the following structure:
 
-- Customer management section
-- Individual management section
-- Link generation and copying
-- Status tracking
+- Customer management section for adding and selecting customers
+- Individual management section for adding and managing individuals
+- Modal interfaces for adding individuals and sending invitations
+- Status display with color-coding for different states
+- Action buttons for copying links, sending invitations, and deleting individuals
 
 ### Data Flow
 
-1. User adds a customer
-2. User adds individuals to the customer
-3. System generates unique links for each individual
-4. User shares links with individuals
-5. System tracks completion status
+1. User adds a customer with a name and collection link
+2. User adds individuals to the customer with ID and contact information
+3. User sends invitations to individuals via email or SMS
+4. System updates individual status to "invited"
+5. When individuals access the link, their status is updated
+6. User can track the status of all individuals in the system
+7. User can resend invitations or delete individuals as needed
+
+### Current Status vs. Future Enhancements
+
+The current implementation includes basic invitation and tracking functionality. Future enhancements (as outlined in the future-requirements.md document) will add:
+
+- Comprehensive status history tracking
+- Integration with Trua Collect via webhooks
+- Scheduled actions and automated reminders
+- Advanced reporting and analytics
+- Enhanced communication templates
 
 ## Integration Between Use Cases
 
 The three use cases are integrated to provide a complete solution:
 
 1. **Key Maker → Key Analyzer**: Keys created in the Key Maker can be analyzed in the Key Analyzer
-2. **Key Maker → Invite and Track**: Keys created in the Key Maker are used in the Invite and Track system
-3. **Invite and Track → Key Analyzer**: Links generated in the Invite and Track system use keys that can be analyzed
+2. **Key Maker → Invite**: Keys created in the Key Maker are used in the Invite system
+3. **Invite → Key Analyzer**: Links generated in the Invite system use keys that can be analyzed
 
 ## Database Integration
 

@@ -55,9 +55,9 @@ The KeyMaker application consists of:
 - Styled-components for styling
 - Vite as the build tool
 - Three main components for the core use cases:
-  1. **KeyMaker**: Create and configure background check keys
-  2. **KeyAnalyzer**: Analyze and interpret existing keys
-  3. **InviteAndTrack**: Manage customers and track individual background checks
+  1. **KeyMaker**: Create and configure background check keys with customer and individual management
+  2. **KeyAnalyzer**: Analyze and interpret existing keys with detailed requirement breakdown
+  3. **InviteAndTrack**: Manage customers, send invitations via multiple channels (email, SMS), and track completion status
 
 ### Backend
 - Express.js API server

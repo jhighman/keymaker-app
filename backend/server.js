@@ -3,6 +3,7 @@ import cors from 'cors';
 import { connectToDatabase } from './database/connection.js';
 import keyRoutes from './routes/keys.js';
 import customerRoutes from './routes/customers.js';
+import webhookRoutes from './routes/webhook.js';
 import { config } from './config.js';
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 // Routes
 app.use('/api/keys', keyRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

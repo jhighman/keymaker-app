@@ -1,9 +1,9 @@
-# UI Mockups: Enhanced Invite and Track
+# UI Mockups: Enhanced Invite
 
 ## Overview
-
+This document provides UI mockups for the enhanced Invite functionality. These mockups illustrate the user interface for the new features described in the future requirements document.
 This document provides UI mockups for the enhanced Invite and Track functionality. These mockups illustrate the user interface for the new features described in the future requirements document.
-
+## 1. Main Invite Dashboard
 ## 1. Main Invite and Track Dashboard
 
 ```mermaid
@@ -190,5 +190,5 @@ graph TD
     TopRow --> BottomRow
     BottomRow --> Filters
 ```
-
+These Mermaid diagrams provide a visual representation of the enhanced Invite functionality, including the new features for communication management, status tracking, and analytics. They serve as a guide for the implementation of the user interface and user experience for the enhanced system.
 These Mermaid diagrams provide a visual representation of the enhanced Invite and Track functionality, including the new features for communication management, status tracking, and analytics. They serve as a guide for the implementation of the user interface and user experience for the enhanced system.

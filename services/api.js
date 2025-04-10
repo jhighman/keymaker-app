@@ -181,6 +181,382 @@ export const customerService = {
     });
     if (!response.ok) throw new Error('Failed to remove individual');
     return true;
+  },
+  
+  updateIndividualStatus: async (customerId, individualId, status) => {
+    console.debug('Updating individual status:', customerId, individualId, status, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId) {
+                return {
+                  ...ind,
+                  status,
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!response.ok) throw new Error('Failed to update individual status');
+    return response.json();
+  },
+  
+  updateContactInfo: async (customerId, individualId, contactInfo) => {
+    console.debug('Updating contact info:', customerId, individualId, contactInfo, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId) {
+                return {
+                  ...ind,
+                  contactInfo: {
+                    ...(ind.contactInfo || {}),
+                    ...contactInfo
+                  },
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/contact`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contactInfo)
+    });
+    if (!response.ok) throw new Error('Failed to update contact info');
+    return response.json();
+  },
+  
+  addCommunication: async (customerId, individualId, communicationData) => {
+    console.debug('Adding communication:', customerId, individualId, communicationData, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId) {
+                return {
+                  ...ind,
+                  communications: [
+                    ...(ind.communications || []),
+                    {
+                      ...communicationData,
+                      timestamp: new Date(),
+                      messageId: communicationData.messageId || `msg_${Date.now()}`
+                    }
+                  ],
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/communications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(communicationData)
+    });
+    if (!response.ok) throw new Error('Failed to add communication');
+    return response.json();
+  },
+  
+  updateCommunicationStatus: async (customerId, individualId, messageId, status) => {
+    console.debug('Updating communication status:', customerId, individualId, messageId, status, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId) {
+                return {
+                  ...ind,
+                  communications: (ind.communications || []).map(comm => {
+                    if (comm.messageId === messageId) {
+                      return {
+                        ...comm,
+                        status
+                      };
+                    }
+                    return comm;
+                  }),
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/communications/${messageId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!response.ok) throw new Error('Failed to update communication status');
+    return response.json();
+  },
+  
+  addScheduledAction: async (customerId, individualId, actionData) => {
+    console.debug('Adding scheduled action:', customerId, individualId, actionData, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId) {
+                return {
+                  ...ind,
+                  scheduledActions: [
+                    ...(ind.scheduledActions || []),
+                    {
+                      ...actionData,
+                      executed: false
+                    }
+                  ],
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/actions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(actionData)
+    });
+    if (!response.ok) throw new Error('Failed to add scheduled action');
+    return response.json();
+  },
+  
+  updateScheduledAction: async (customerId, individualId, actionIndex, updates) => {
+    console.debug('Updating scheduled action:', customerId, individualId, actionIndex, updates, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            individuals: (customer.individuals || []).map(ind => {
+              if (ind.id === individualId && ind.scheduledActions && ind.scheduledActions[actionIndex]) {
+                const scheduledActions = [...(ind.scheduledActions || [])];
+                scheduledActions[actionIndex] = {
+                  ...scheduledActions[actionIndex],
+                  ...updates
+                };
+                return {
+                  ...ind,
+                  scheduledActions,
+                  updatedAt: new Date()
+                };
+              }
+              return ind;
+            })
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/individuals/${individualId}/actions/${actionIndex}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!response.ok) throw new Error('Failed to update scheduled action');
+    return response.json();
+  },
+  
+  updateCommunicationSettings: async (customerId, settings) => {
+    console.debug('Updating communication settings:', customerId, settings, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            communicationSettings: {
+              ...(customer.communicationSettings || {}),
+              ...settings
+            },
+            updatedAt: new Date()
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/communication-settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    if (!response.ok) throw new Error('Failed to update communication settings');
+    return response.json();
+  },
+  
+  updateWebhookSettings: async (customerId, settings) => {
+    console.debug('Updating webhook settings:', customerId, settings, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, update in localStorage
+      const customers = getLocalCustomers();
+      const updated = customers.map(customer => {
+        if (customer.id === customerId) {
+          return {
+            ...customer,
+            webhookSettings: {
+              ...(customer.webhookSettings || {}),
+              ...settings
+            },
+            updatedAt: new Date()
+          };
+        }
+        return customer;
+      });
+      saveLocalCustomers(updated);
+      return updated.find(c => c.id === customerId);
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/${customerId}/webhook-settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    if (!response.ok) throw new Error('Failed to update webhook settings');
+    return response.json();
+  },
+  
+  getDueActions: async () => {
+    console.debug('Getting due actions in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    if (IS_LOCAL_MODE) {
+      // In local mode, calculate due actions from localStorage
+      const customers = getLocalCustomers();
+      const now = new Date();
+      const dueActions = [];
+      
+      customers.forEach(customer => {
+        (customer.individuals || []).forEach(individual => {
+          (individual.scheduledActions || []).forEach((action, index) => {
+            if (!action.executed && new Date(action.scheduledFor) <= now) {
+              dueActions.push({
+                customerId: customer.id,
+                individualId: individual.id,
+                actionIndex: index,
+                action
+              });
+            }
+          });
+        });
+      });
+      
+      return dueActions;
+    }
+    
+    // Production mode - use API
+    const response = await fetch(`${DB_URL}/customers/actions/due`);
+    if (!response.ok) throw new Error('Failed to get due actions');
+    return response.json();
+  },
+  
+  sendInvitation: async (customerId, individualId, channel, message) => {
+    console.debug('Sending invitation:', customerId, individualId, channel, 'in mode:', IS_LOCAL_MODE ? 'local' : 'production');
+    
+    // Create communication record
+    const communicationData = {
+      channel,
+      status: 'sent',
+      messageId: `msg_${Date.now()}`,
+      message
+    };
+    
+    // Add communication record
+    const customer = await customerService.addCommunication(customerId, individualId, communicationData);
+    
+    // Update individual status to 'invited'
+    await customerService.updateIndividualStatus(customerId, individualId, 'invited');
+    
+    return customer;
   }
 };
 

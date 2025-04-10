@@ -19,10 +19,11 @@ The KeyMaker specification defines a compact, binary-based encoding system for r
 9. [Architecture](./architecture.md)
 10. [Components](./components.md)
 11. [Use Cases](./use-cases.md)
-12. [Future Requirements](./future-requirements.md)
-13. [Sequence Diagrams](./sequence-diagrams.md)
-14. [API Contract](./api-contract.md)
-15. [UI Mockups](./ui-mockups.md)
+12. [Invite](./invite.md)
+13. [Future Requirements](./future-requirements.md)
+14. [Sequence Diagrams](./sequence-diagrams.md)
+15. [API Contract](./api-contract.md)
+16. [UI Mockups](./ui-mockups.md)
 
 ## Quick Reference
 

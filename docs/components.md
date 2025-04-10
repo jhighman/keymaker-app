@@ -14,8 +14,8 @@ import { ThemeProvider } from 'styled-components';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GlobalStyle, theme } from './theme';
 import KeyMaker from './components/KeyMaker';
-import KeyAnalyzer from './components/KeyAnalyzer';
-import InviteAndTrack from './components/InviteAndTrack';
+import KeyAnalyser from './components/KeyAnalyser';
+import Invite from './components/Invite';
 import Navigation from './components/Navigation';
 
 const App = () => {
@@ -26,8 +26,9 @@ const App = () => {
         <Navigation />
         <Routes>
           <Route path="/" element={<KeyMaker />} />
-          <Route path="/analyze" element={<KeyAnalyzer />} />
-          <Route path="/invite" element={<InviteAndTrack />} />
+          <Route path="/analyze" element={<KeyAnalyser />} />
+          <Route path="/analyse" element={<KeyAnalyser />} />
+          <Route path="/invite" element={<Invite />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
@@ -45,7 +46,7 @@ Key features:
 - Database environment selection (local/production)
 - Individual tracking integration
 
-### KeyAnalyzer.jsx
+### KeyAnalyser.jsx
 The component that handles key analysis and interpretation.
 
 Key features:
@@ -53,15 +54,19 @@ Key features:
 - Detailed breakdown of key components
 - Visual representation of key requirements
 - Support for the KeyMaker key format
-
+### Invite.jsx
 ### InviteAndTrack.jsx
 The component that manages customer invitations and tracks individual background checks.
 
 Key features:
-- Customer management (add, view)
-- Individual management (add, delete)
-- Invitation link generation
-- Status tracking
+- Customer management (add, view, select)
+- Individual management (add, delete, track)
+- Contact information management (email, phone, preferred channel)
+- Communication channels (email, SMS)
+- Invitation management (send, resend)
+- Status tracking with multiple states (pending, invited, started, in_progress, completed, expired, failed)
+- Modal interfaces for adding individuals and sending invitations
+- Link generation and copying
 
 ## Component Hierarchy
 
@@ -80,7 +85,7 @@ App
     │       ├── OutputCard
     │       ├── CollectionLinkCard
     │       └── CustomerLinkCard
-    ├── KeyAnalyzer
+    ├── KeyAnalyser
     │   ├── InputGroup
     │   └── ResultCard
     │       ├── LanguageSection
@@ -89,7 +94,7 @@ App
     │       ├── ResidenceHistorySection
     │       ├── EmploymentHistorySection
     │       └── AdditionalRequirementsSection
-    └── InviteAndTrack
+    └── Invite
         ├── CustomerCard
         │   ├── CustomerInput
         │   └── CustomerList
@@ -128,4 +133,4 @@ Components are styled using styled-components with the following principles:
 3. Performance
    - Optimize re-renders
    - Use proper key props
-   - Implement proper event handling 
+   - Implement proper event handling
